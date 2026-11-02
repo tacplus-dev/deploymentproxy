@@ -1,6 +1,6 @@
 # deploymentproxy's only rights, and nothing else. RBAC cannot scope by label, so the grants on namespaces and on
 # the objects inside them are cluster-wide; deploymentproxy itself touches only namespaces carrying its owner label.
-# Nothing here grants creating TenantNamespace objects: that is a Role in each deployment namespace
+# Nothing here grants creating TenantNamespace or PodFault objects: those are Roles in each deployment namespace
 # (config/deployment-namespace). This ClusterRole is not aggregated into admin, edit or view.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -29,4 +29,15 @@ rules:
     verbs: [get, list, watch]
   - apiGroups: [deploymentproxy.tacplus.dev]
     resources: [tenantnamespaces/status]
+    verbs: [get, update, patch]
+  # PodFault: pods are killed (deleted) or failed (their images patched, and put back) through the API only.
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list, watch, patch, delete]
+  # patch: its finalizer, which holds a Failure's PodFault until the pod is put back.
+  - apiGroups: [deploymentproxy.tacplus.dev]
+    resources: [podfaults]
+    verbs: [get, list, watch, patch]
+  - apiGroups: [deploymentproxy.tacplus.dev]
+    resources: [podfaults/status]
     verbs: [get, update, patch]

@@ -1,4 +1,4 @@
-// Command deploymentproxy runs the TenantNamespace controller. It has no network listener.
+// Command deploymentproxy runs the TenantNamespace and PodFault controllers. It has no network listener.
 package main
 
 import (
@@ -19,7 +19,7 @@ import (
 
 func main() {
 	configPath := flag.String("config", "/etc/deploymentproxy/config.yaml", "the config file (the deploymentproxy ConfigMap's config.yaml)")
-	resync := flag.Duration("resync", 10*time.Minute, "how often every TenantNamespace is reconciled again")
+	resync := flag.Duration("resync", 10*time.Minute, "how often every TenantNamespace and PodFault is reconciled again")
 	opts := zap.Options{}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
@@ -60,6 +60,15 @@ func main() {
 		Config:    func() (*config.Config, error) { return config.Load(*configPath) },
 	}
 	if err := r.SetupWithManager(mgr); err != nil {
+		log.Error(err, "setting up controller")
+		os.Exit(1)
+	}
+	pf := &controller.PodFaultReconciler{
+		Client:    mgr.GetClient(),
+		APIReader: mgr.GetAPIReader(),
+		Config:    r.Config,
+	}
+	if err := pf.SetupWithManager(mgr); err != nil {
 		log.Error(err, "setting up controller")
 		os.Exit(1)
 	}

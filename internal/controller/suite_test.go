@@ -129,6 +129,14 @@ func run(m *testing.M) int {
 	if err := r.SetupWithManager(mgr); err != nil {
 		panic(err)
 	}
+	pf := &PodFaultReconciler{
+		Client:    mgr.GetClient(),
+		APIReader: mgr.GetAPIReader(),
+		Config:    func() (*config.Config, error) { return currentConfig.Load(), nil },
+	}
+	if err := pf.SetupWithManager(mgr); err != nil {
+		panic(err)
+	}
 	go func() {
 		if err := mgr.Start(ctx); err != nil {
 			panic(err)

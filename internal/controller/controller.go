@@ -1,6 +1,7 @@
-// Package controller reconciles TenantNamespace objects: for each one in a deployment namespace, the tenant
-// namespace tac-<deployment>-<tid> exists with deploymentproxy's defaults; when the object or its namespace is
-// gone, so is the tenant namespace.
+// Package controller reconciles deploymentproxy's resources. TenantNamespace: for each one in a deployment
+// namespace, the tenant namespace tac-<deployment>-<tid> exists with deploymentproxy's defaults; when the object
+// or its namespace is gone, so is the tenant namespace. PodFault (podfault.go): a chaos fault on one pod of the
+// requesting deployment, applied once and reverted at its end.
 package controller
 
 import (
@@ -222,15 +223,9 @@ func (r *Reconciler) ensure(ctx context.Context, tn *deploymentproxyv1.TenantNam
 	if err != nil {
 		return "", err
 	}
-	if _, ok := parent.Labels[OwnerLabel]; ok {
-		return "", &refusal{ReasonInTenantNamespace, "namespace " + parent.Name + " is a tenant namespace; ask from the deployment namespace"}
-	}
-	deployment, ok := parent.Labels[DeploymentLabel]
-	if !ok {
-		return "", &refusal{ReasonNotDeploymentNamespace, "namespace " + parent.Name + " has no " + DeploymentLabel + " label"}
-	}
-	if !deploymentPattern.MatchString(deployment) {
-		return "", &refusal{ReasonInvalidDeployment, fmt.Sprintf("deployment %q (label %s of %s) is not 1-16 characters of [a-z0-9-] starting with a letter", deployment, DeploymentLabel, parent.Name)}
+	deployment, err := deploymentOf(parent)
+	if err != nil {
+		return "", err
 	}
 	if !cfg.ValidTid(tn.Spec.Tid) {
 		return "", &refusal{ReasonReservedTid, fmt.Sprintf("tid %q is in the reserved all-digit range and not configured", tn.Spec.Tid)}
@@ -248,6 +243,21 @@ func (r *Reconciler) ensure(ctx context.Context, tn *deploymentproxyv1.TenantNam
 	}
 	// A tenant namespace this object had under another name (its parent's deployment label changed).
 	return name, r.deleteChildren(ctx, owner, name)
+}
+
+// deploymentOf returns the deployment whose namespace parent is, from its label, or refuses a request made in it.
+func deploymentOf(parent *corev1.Namespace) (string, error) {
+	if _, ok := parent.Labels[OwnerLabel]; ok {
+		return "", &refusal{ReasonInTenantNamespace, "namespace " + parent.Name + " is a tenant namespace; ask from the deployment namespace"}
+	}
+	deployment, ok := parent.Labels[DeploymentLabel]
+	if !ok {
+		return "", &refusal{ReasonNotDeploymentNamespace, "namespace " + parent.Name + " has no " + DeploymentLabel + " label"}
+	}
+	if !deploymentPattern.MatchString(deployment) {
+		return "", &refusal{ReasonInvalidDeployment, fmt.Sprintf("deployment %q (label %s of %s) is not 1-16 characters of [a-z0-9-] starting with a letter", deployment, DeploymentLabel, parent.Name)}
+	}
+	return deployment, nil
 }
 
 // ensureNamespace creates the tenant namespace, or puts back deploymentproxy's labels and annotation on it.

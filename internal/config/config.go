@@ -1,6 +1,6 @@
 // Package config is deploymentproxy's configuration: the reserved tids it accepts, those every tenant of a
-// deployment may reach, and the quota it gives each deployment's tenant namespaces. It is read from the
-// deploymentproxy ConfigMap, mounted as a file.
+// deployment may reach, the quota it gives each deployment's tenant namespaces, and what chaos faults may not
+// target. It is read from the deploymentproxy ConfigMap, mounted as a file.
 package config
 
 import (
@@ -29,6 +29,20 @@ type Config struct {
 	// reachable from another.
 	SharedTids []string `json:"sharedTids,omitempty"`
 	Quota      Quota    `json:"quota,omitempty"`
+	Chaos      Chaos    `json:"chaos,omitempty"`
+}
+
+// DefaultFailureImage is the image a PodFault of action Failure gives each container, unless configured.
+const DefaultFailureImage = "registry.k8s.io/pause:3.10"
+
+// Chaos configures the fault kinds. The exclusions only add to the compiled-in ones (internal/controller).
+type Chaos struct {
+	// ExcludedNamespaces are namespaces no fault targets, even one of the requesting deployment's.
+	ExcludedNamespaces []string `json:"excludedNamespaces,omitempty"`
+	// ExcludedServices are values of a pod's app.kubernetes.io/name label no fault targets.
+	ExcludedServices []string `json:"excludedServices,omitempty"`
+	// FailureImage replaces DefaultFailureImage.
+	FailureImage string `json:"failureImage,omitempty"`
 }
 
 // Quota is the ResourceQuota of a tenant namespace: Default, with a deployment's entry in Deployments
@@ -62,6 +76,9 @@ func Parse(b []byte) (*Config, error) {
 		if !slices.Contains(c.ReservedTids, tid) {
 			return nil, fmt.Errorf("config: shared tid %q is not a reserved tid", tid)
 		}
+	}
+	if c.Chaos.FailureImage == "" {
+		c.Chaos.FailureImage = DefaultFailureImage
 	}
 	return c, nil
 }

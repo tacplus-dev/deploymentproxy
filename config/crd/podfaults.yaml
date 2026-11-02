@@ -1,0 +1,154 @@
+# The contract with every deployment's chaos controller. Written by hand; the Go types are in api/v1.
+# Bounds are not in the schema: deploymentproxy, the side that acts, checks them and refuses an object out of
+# bound with a status condition, as it refuses every other request it will not serve.
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: podfaults.deploymentproxy.tacplus.dev
+spec:
+  group: deploymentproxy.tacplus.dev
+  scope: Namespaced
+  names:
+    kind: PodFault
+    listKind: PodFaultList
+    plural: podfaults
+    singular: podfault
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Action
+          type: string
+          jsonPath: .spec.action
+        - name: Pod
+          type: string
+          jsonPath: .status.pod
+        - name: Applied
+          type: string
+          jsonPath: .status.conditions[?(@.type=="Applied")].reason
+        - name: Reverted
+          type: string
+          jsonPath: .status.conditions[?(@.type=="Reverted")].status
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              required: [action, target, duration]
+              x-kubernetes-validations:
+                - rule: self == oldSelf
+                  message: spec is immutable
+              properties:
+                tag:
+                  description: The fault's tag, opaque to deploymentproxy and copied unchanged to status.tag.
+                  type: string
+                  maxLength: 1024
+                action:
+                  description: Kill deletes the pod once; Failure sets its containers to the failure image for the duration.
+                  type: string
+                  enum: [Kill, Failure]
+                target:
+                  description: One pod, by name or by label selector, in the deployment namespace or one of its tenant namespaces.
+                  type: object
+                  properties:
+                    namespace:
+                      description: The target's namespace; default the PodFault's own.
+                      type: string
+                    pod:
+                      description: The pod's name. Exactly one of pod and selector is set.
+                      type: string
+                    selector:
+                      description: Matches pods in the namespace; deploymentproxy chooses one it may target.
+                      type: object
+                      properties:
+                        matchLabels:
+                          type: object
+                          additionalProperties:
+                            type: string
+                        matchExpressions:
+                          type: array
+                          items:
+                            type: object
+                            required: [key, operator]
+                            properties:
+                              key:
+                                type: string
+                              operator:
+                                type: string
+                              values:
+                                type: array
+                                items:
+                                  type: string
+                duration:
+                  description: How long the fault lasts, a Go duration (30s, 2m), 1s to 5m.
+                  type: string
+                  maxLength: 32
+                gracePeriodSeconds:
+                  description: A Kill's grace period, 0 to 30 seconds, default 0. Not allowed with Failure.
+                  type: integer
+                  format: int64
+            status:
+              type: object
+              properties:
+                tag:
+                  description: spec.tag, unchanged.
+                  type: string
+                namespace:
+                  description: The target pod's namespace, once one is chosen.
+                  type: string
+                pod:
+                  description: The target pod, once one is chosen.
+                  type: string
+                podUID:
+                  description: The target pod's UID; deploymentproxy acts on and reverts this pod only.
+                  type: string
+                originalImages:
+                  description: The images a Failure replaces, by container name.
+                  type: object
+                  additionalProperties:
+                    type: string
+                startTime:
+                  description: When the fault was applied.
+                  type: string
+                  format: date-time
+                endTime:
+                  description: When the fault is, or was, reverted.
+                  type: string
+                  format: date-time
+                conditions:
+                  type: array
+                  x-kubernetes-list-type: map
+                  x-kubernetes-list-map-keys: [type]
+                  items:
+                    type: object
+                    required: [type, status, lastTransitionTime, reason, message]
+                    properties:
+                      type:
+                        type: string
+                      status:
+                        type: string
+                        enum: ["True", "False", "Unknown"]
+                      observedGeneration:
+                        type: integer
+                        format: int64
+                      lastTransitionTime:
+                        type: string
+                        format: date-time
+                      reason:
+                        type: string
+                      message:
+                        type: string

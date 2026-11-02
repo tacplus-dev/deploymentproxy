@@ -1,4 +1,4 @@
-// Package v1 is the deploymentproxy.tacplus.dev/v1 API: the TenantNamespace resource.
+// Package v1 is the deploymentproxy.tacplus.dev/v1 API: the TenantNamespace and PodFault resources.
 package v1
 
 import (
@@ -7,11 +7,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// GroupVersion is the API group and version of TenantNamespace.
+// GroupVersion is the API group and version of deploymentproxy's resources.
 var GroupVersion = schema.GroupVersion{Group: "deploymentproxy.tacplus.dev", Version: "v1"}
 
 var schemeBuilder = runtime.NewSchemeBuilder(func(s *runtime.Scheme) error {
-	s.AddKnownTypes(GroupVersion, &TenantNamespace{}, &TenantNamespaceList{})
+	s.AddKnownTypes(GroupVersion, &TenantNamespace{}, &TenantNamespaceList{}, &PodFault{}, &PodFaultList{})
 	metav1.AddToGroupVersion(s, GroupVersion)
 	return nil
 })

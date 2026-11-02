@@ -1,0 +1,27 @@
+# Applied by the top pipeline in each deployment namespace, after labelling it tacplus.dev/deployment:
+#   NAMESPACE=tac-<deployment> envsubst '$NAMESPACE' < chaos.yaml | kubectl apply -f -
+# It lets the deployment's chaos controller (tacplus-dev/chaos), and no other service account, ask deploymentproxy
+# for faults. The chaos controller gets no right on pods itself.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: deploymentproxy-faults
+  namespace: ${NAMESPACE}
+rules:
+  - apiGroups: [deploymentproxy.tacplus.dev]
+    resources: [podfaults]
+    verbs: [get, list, watch, create, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: deploymentproxy-faults
+  namespace: ${NAMESPACE}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: deploymentproxy-faults
+subjects:
+  - kind: ServiceAccount
+    name: chaos-controller
+    namespace: ${NAMESPACE}

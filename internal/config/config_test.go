@@ -111,3 +111,23 @@ func TestShippedConfigMap(t *testing.T) {
 		t.Errorf("sharedTids = %v, want [00000002]", c.SharedTids)
 	}
 }
+
+func TestChaos(t *testing.T) {
+	c, err := Parse([]byte(sample))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Chaos.FailureImage != DefaultFailureImage {
+		t.Errorf("failureImage = %q, want the default %q", c.Chaos.FailureImage, DefaultFailureImage)
+	}
+	c, err = Parse([]byte(`{chaos: {excludedNamespaces: [tac-prod-quiet], excludedServices: [kernel], failureImage: example.com/pause:1}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fmt.Sprintf("%v %v %s", c.Chaos.ExcludedNamespaces, c.Chaos.ExcludedServices, c.Chaos.FailureImage) != "[tac-prod-quiet] [kernel] example.com/pause:1" {
+		t.Errorf("chaos = %+v", c.Chaos)
+	}
+	if _, err := Parse([]byte(`{chaos: {unknown: 1}}`)); err == nil {
+		t.Error("an unknown chaos key was accepted")
+	}
+}
