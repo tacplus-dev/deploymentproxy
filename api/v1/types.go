@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// TenantNamespace asks nsproxy for the tenant namespace tac-<deployment>-<tid>. It lives in a deployment
+// TenantNamespace asks deploymentproxy for the tenant namespace tac-<deployment>-<tid>. It lives in a deployment
 // namespace (labelled tacplus.dev/deployment); deleting it deletes the tenant namespace.
 type TenantNamespace struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -18,13 +18,13 @@ type TenantNamespace struct {
 // TenantNamespaceSpec is what the deployment's operator asks for.
 type TenantNamespaceSpec struct {
 	// Tid is the tenant id: exactly 8 characters of [0-9a-z], immutable. An all-digit tid is reserved for
-	// the platform and accepted only for the reserved ids nsproxy is configured with.
+	// the platform and accepted only for the reserved ids deploymentproxy is configured with.
 	Tid string `json:"tid"`
 }
 
-// TenantNamespaceStatus is written by nsproxy only.
+// TenantNamespaceStatus is written by deploymentproxy only.
 type TenantNamespaceStatus struct {
-	// Namespace is the name of the tenant namespace, once nsproxy has it in place.
+	// Namespace is the name of the tenant namespace, once deploymentproxy has it in place.
 	Namespace string `json:"namespace,omitempty"`
 	// Conditions holds Ready; when it is False, its reason says why.
 	Conditions []metav1.Condition `json:"conditions,omitempty"`

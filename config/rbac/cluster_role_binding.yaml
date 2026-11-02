@@ -1,12 +1,12 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: nsproxy
+  name: deploymentproxy
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: nsproxy
+  name: deploymentproxy
 subjects:
   - kind: ServiceAccount
-    name: nsproxy
-    namespace: nsproxy
+    name: deploymentproxy
+    namespace: deploymentproxy

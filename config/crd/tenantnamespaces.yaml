@@ -2,9 +2,9 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: tenantnamespaces.nsproxy.tacplus.dev
+  name: tenantnamespaces.deploymentproxy.tacplus.dev
 spec:
-  group: nsproxy.tacplus.dev
+  group: deploymentproxy.tacplus.dev
   scope: Namespaced
   names:
     kind: TenantNamespace
@@ -48,7 +48,7 @@ spec:
                 tid:
                   description: >-
                     The tenant id: exactly 8 characters of [0-9a-z], immutable. An all-digit tid is reserved
-                    for the platform and accepted only for the reserved ids nsproxy is configured with.
+                    for the platform and accepted only for the reserved ids deploymentproxy is configured with.
                   type: string
                   pattern: '^[0-9a-z]{8}$'
                   x-kubernetes-validations:
@@ -58,7 +58,7 @@ spec:
               type: object
               properties:
                 namespace:
-                  description: The tenant namespace, tac-<deployment>-<tid>, once nsproxy has it in place.
+                  description: The tenant namespace, tac-<deployment>-<tid>, once deploymentproxy has it in place.
                   type: string
                 conditions:
                   type: array

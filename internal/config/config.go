@@ -1,5 +1,6 @@
-// Package config is nsproxy's configuration: the reserved tids it accepts, those every tenant of a deployment
-// may reach, and the quota it gives each deployment's tenant namespaces. It is read from the nsproxy ConfigMap, mounted as a file.
+// Package config is deploymentproxy's configuration: the reserved tids it accepts, those every tenant of a
+// deployment may reach, and the quota it gives each deployment's tenant namespaces. It is read from the
+// deploymentproxy ConfigMap, mounted as a file.
 package config
 
 import (
@@ -20,7 +21,7 @@ var (
 
 // Config is the content of the ConfigMap's config.yaml.
 type Config struct {
-	// ReservedTids are the all-digit tids nsproxy accepts (people is 00000001). Every other all-digit tid
+	// ReservedTids are the all-digit tids deploymentproxy accepts (people is 00000001). Every other all-digit tid
 	// is refused.
 	ReservedTids []string `json:"reservedTids,omitempty"`
 	// SharedTids are reserved tids whose tenant namespace every tenant namespace of the same deployment may
@@ -65,7 +66,7 @@ func Parse(b []byte) (*Config, error) {
 	return c, nil
 }
 
-// ValidTid reports whether nsproxy accepts tid: 8 characters of [0-9a-z], and, if all digits, reserved.
+// ValidTid reports whether deploymentproxy accepts tid: 8 characters of [0-9a-z], and, if all digits, reserved.
 func (c *Config) ValidTid(tid string) bool {
 	if !tidPattern.MatchString(tid) {
 		return false

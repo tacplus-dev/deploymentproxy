@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The image tags a release puts on ghcr.io/tacplus-dev/nsproxy (.github/workflows/release.yml).
+# The image tags a release puts on ghcr.io/tacplus-dev/deploymentproxy (.github/workflows/release.yml).
 #
 # Usage:  scripts/release-tags.sh vX.Y.Z
 #

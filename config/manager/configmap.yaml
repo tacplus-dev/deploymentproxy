@@ -7,8 +7,8 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: nsproxy
-  namespace: nsproxy
+  name: deploymentproxy
+  namespace: deploymentproxy
 data:
   config.yaml: |
     reservedTids: ["00000001", "00000002"]

@@ -7,15 +7,15 @@ RUN go mod download
 COPY api api
 COPY cmd cmd
 COPY internal internal
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags=-s -o /nsproxy ./cmd/nsproxy
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags=-s -o /deploymentproxy ./cmd/deploymentproxy
 
 FROM gcr.io/distroless/static-debian13:nonroot
 # Set by the release (.github/workflows/release.yml).
 ARG VERSION=dev
 ARG REVISION=unknown
-LABEL org.opencontainers.image.source="https://github.com/tacplus-dev/nsproxy" \
+LABEL org.opencontainers.image.source="https://github.com/tacplus-dev/deploymentproxy" \
       org.opencontainers.image.version="$VERSION" \
       org.opencontainers.image.revision="$REVISION"
-COPY --from=build /nsproxy /nsproxy
+COPY --from=build /deploymentproxy /deploymentproxy
 USER 65532:65532
-ENTRYPOINT ["/nsproxy"]
+ENTRYPOINT ["/deploymentproxy"]

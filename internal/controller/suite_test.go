@@ -25,12 +25,12 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/yaml"
 
-	nsproxyv1 "github.com/tacplus-dev/nsproxy/api/v1"
-	"github.com/tacplus-dev/nsproxy/internal/config"
+	deploymentproxyv1 "github.com/tacplus-dev/deploymentproxy/api/v1"
+	"github.com/tacplus-dev/deploymentproxy/internal/config"
 )
 
 // The suite runs a real API server (envtest) with the repository's CRD, and runs the controller as
-// nsproxy's service account under the repository's RBAC manifests, so a permission missing from them, or
+// deploymentproxy's service account under the repository's RBAC manifests, so a permission missing from them, or
 // one it relies on that they do not grant, fails here.
 
 const testConfig = `
@@ -45,7 +45,7 @@ quota:
 `
 
 // resync is the test manager's resync period: short, so that a config change reaches existing tenant
-// namespaces within a test, the way it does within nsproxy's (longer) resync period.
+// namespaces within a test, the way it does within deploymentproxy's (longer) resync period.
 const resync = 2 * time.Second
 
 var (
@@ -65,7 +65,7 @@ func run(m *testing.M) int {
 	if err := clientgoscheme.AddToScheme(scheme); err != nil {
 		panic(err)
 	}
-	if err := nsproxyv1.AddToScheme(scheme); err != nil {
+	if err := deploymentproxyv1.AddToScheme(scheme); err != nil {
 		panic(err)
 	}
 	if os.Getenv("KUBEBUILDER_ASSETS") == "" {
@@ -95,7 +95,7 @@ func run(m *testing.M) int {
 	}
 
 	// envtest runs no ClusterRole aggregation, so admin is empty and binding it needs no right at all.
-	// Give it rules, as a cluster does, so that nsproxy needs its bind grant.
+	// Give it rules, as a cluster does, so that deploymentproxy needs its bind grant.
 	adminRole := &rbacv1.ClusterRole{}
 	if err := admin.Get(ctx, client.ObjectKey{Name: "admin"}, adminRole); err != nil {
 		panic(err)
@@ -113,7 +113,7 @@ func run(m *testing.M) int {
 	cacheOpts := CacheOptions()
 	syncPeriod := resync
 	cacheOpts.SyncPeriod = &syncPeriod
-	mgr, err := ctrl.NewManager(impersonate(adminCfg, "nsproxy", "nsproxy"), ctrl.Options{
+	mgr, err := ctrl.NewManager(impersonate(adminCfg, "deploymentproxy", "deploymentproxy"), ctrl.Options{
 		Scheme:  scheme,
 		Cache:   cacheOpts,
 		Metrics: metricsserver.Options{BindAddress: "0"},

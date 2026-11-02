@@ -1,4 +1,4 @@
-// Package v1 is the nsproxy.tacplus.dev/v1 API: the TenantNamespace resource.
+// Package v1 is the deploymentproxy.tacplus.dev/v1 API: the TenantNamespace resource.
 package v1
 
 import (
@@ -8,7 +8,7 @@ import (
 )
 
 // GroupVersion is the API group and version of TenantNamespace.
-var GroupVersion = schema.GroupVersion{Group: "nsproxy.tacplus.dev", Version: "v1"}
+var GroupVersion = schema.GroupVersion{Group: "deploymentproxy.tacplus.dev", Version: "v1"}
 
 var schemeBuilder = runtime.NewSchemeBuilder(func(s *runtime.Scheme) error {
 	s.AddKnownTypes(GroupVersion, &TenantNamespace{}, &TenantNamespaceList{})
@@ -16,5 +16,5 @@ var schemeBuilder = runtime.NewSchemeBuilder(func(s *runtime.Scheme) error {
 	return nil
 })
 
-// AddToScheme registers the nsproxy.tacplus.dev/v1 types.
+// AddToScheme registers the deploymentproxy.tacplus.dev/v1 types.
 var AddToScheme = schemeBuilder.AddToScheme

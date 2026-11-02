@@ -1,6 +1,6 @@
 // Package controller reconciles TenantNamespace objects: for each one in a deployment namespace, the tenant
-// namespace tac-<deployment>-<tid> exists with nsproxy's defaults; when the object or its namespace is gone,
-// so is the tenant namespace.
+// namespace tac-<deployment>-<tid> exists with deploymentproxy's defaults; when the object or its namespace is
+// gone, so is the tenant namespace.
 package controller
 
 import (
@@ -28,32 +28,32 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	nsproxyv1 "github.com/tacplus-dev/nsproxy/api/v1"
-	"github.com/tacplus-dev/nsproxy/internal/config"
+	deploymentproxyv1 "github.com/tacplus-dev/deploymentproxy/api/v1"
+	"github.com/tacplus-dev/deploymentproxy/internal/config"
 )
 
 const (
 	// DeploymentLabel marks a deployment namespace and names its deployment. The top pipeline sets it;
-	// nsproxy only reads it.
+	// deploymentproxy only reads it.
 	DeploymentLabel = "tacplus.dev/deployment"
-	// OwnerLabel marks a tenant namespace as nsproxy's and names its deployment. nsproxy changes or deletes
-	// a namespace only if it carries this label for the same deployment.
-	OwnerLabel = "nsproxy.tacplus.dev/deployment"
+	// OwnerLabel marks a tenant namespace as deploymentproxy's and names its deployment. deploymentproxy
+	// changes or deletes a namespace only if it carries this label for the same deployment.
+	OwnerLabel = "deploymentproxy.tacplus.dev/deployment"
 	// TidLabel names a tenant namespace's tid.
-	TidLabel = "nsproxy.tacplus.dev/tid"
+	TidLabel = "deploymentproxy.tacplus.dev/tid"
 	// OwnerAnnotation names the TenantNamespace (<namespace>/<name>) a tenant namespace, and each object
-	// nsproxy keeps in it, is for.
-	OwnerAnnotation = "nsproxy.tacplus.dev/owner"
+	// deploymentproxy keeps in it, is for.
+	OwnerAnnotation = "deploymentproxy.tacplus.dev/owner"
 
-	RoleBindingName = "nsproxy-operator-admin"
-	DenyPolicyName  = "nsproxy-default-deny"
-	AllowPolicyName = "nsproxy-allow"
-	QuotaName       = "nsproxy-quota"
+	RoleBindingName = "deploymentproxy-operator-admin"
+	DenyPolicyName  = "deploymentproxy-default-deny"
+	AllowPolicyName = "deploymentproxy-allow"
+	QuotaName       = "deploymentproxy-quota"
 
 	// OperatorServiceAccount is the service account, in the deployment namespace, made admin of each of
 	// its tenant namespaces.
 	OperatorServiceAccount = "operator"
-	// AdminClusterRole is the one ClusterRole nsproxy binds.
+	// AdminClusterRole is the one ClusterRole deploymentproxy binds.
 	AdminClusterRole = "admin"
 
 	ReadyCondition = "Ready"
@@ -68,7 +68,7 @@ const (
 	ReasonError                  = "Error"
 
 	// ownerNamespaceIndex indexes tenant namespaces by the namespace of the TenantNamespace they are for.
-	ownerNamespaceIndex = "nsproxy.ownerNamespace"
+	ownerNamespaceIndex = "deploymentproxy.ownerNamespace"
 )
 
 // deploymentPattern is a deployment name as the operator validates it: at most 16 characters of [a-z0-9-],
@@ -79,14 +79,14 @@ var deploymentPattern = regexp.MustCompile(`^[a-z][a-z0-9-]{0,15}$`)
 type Reconciler struct {
 	Client client.Client
 	// APIReader reads objects inside tenant namespaces uncached: the cache holds only those carrying
-	// OwnerLabel, and one stripped of it by hand is still nsproxy's to put back.
+	// OwnerLabel, and one stripped of it by hand is still deploymentproxy's to put back.
 	APIReader client.Reader
 	// Config returns the current configuration; it is called on every reconcile.
 	Config func() (*config.Config, error)
 }
 
-// CacheOptions limits the cluster-wide caches of the kinds nsproxy keeps inside tenant namespaces to
-// nsproxy's own objects.
+// CacheOptions limits the cluster-wide caches of the kinds deploymentproxy keeps inside tenant namespaces to
+// deploymentproxy's own objects.
 func CacheOptions() cache.Options {
 	owned, err := labels.NewRequirement(OwnerLabel, selection.Exists, nil)
 	if err != nil {
@@ -120,7 +120,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	})
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("tenantnamespace").
-		For(&nsproxyv1.TenantNamespace{}).
+		For(&deploymentproxyv1.TenantNamespace{}).
 		Watches(&corev1.Namespace{}, handler.EnqueueRequestsFromMapFunc(r.mapNamespace)).
 		Watches(&rbacv1.RoleBinding{}, toOwner).
 		Watches(&networkingv1.NetworkPolicy{}, toOwner).
@@ -128,7 +128,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// ownerOf returns the TenantNamespace an object of nsproxy's is for.
+// ownerOf returns the TenantNamespace an object of deploymentproxy's is for.
 func ownerOf(o client.Object) (types.NamespacedName, bool) {
 	ns, name, ok := strings.Cut(o.GetAnnotations()[OwnerAnnotation], "/")
 	if !ok || ns == "" || name == "" {
@@ -145,7 +145,7 @@ func (r *Reconciler) mapNamespace(ctx context.Context, o client.Object) []reconc
 	if req, ok := ownerOf(o); ok {
 		seen[req] = true
 	}
-	var tns nsproxyv1.TenantNamespaceList
+	var tns deploymentproxyv1.TenantNamespaceList
 	if err := r.Client.List(ctx, &tns, client.InNamespace(o.GetName())); err != nil {
 		log.FromContext(ctx).Error(err, "listing TenantNamespaces", "namespace", o.GetName())
 	}
@@ -184,7 +184,7 @@ func (e *pending) Error() string { return e.message }
 
 // Reconcile brings one TenantNamespace's tenant namespace to its desired state.
 func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	tn := &nsproxyv1.TenantNamespace{}
+	tn := &deploymentproxyv1.TenantNamespace{}
 	if err := r.Client.Get(ctx, req.NamespacedName, tn); err != nil {
 		if apierrors.IsNotFound(err) {
 			return reconcile.Result{}, r.deleteChildren(ctx, req.NamespacedName, "")
@@ -216,8 +216,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	}
 }
 
-// ensure puts tn's tenant namespace, and everything nsproxy keeps in it, in place, and returns its name.
-func (r *Reconciler) ensure(ctx context.Context, tn *nsproxyv1.TenantNamespace, parent *corev1.Namespace) (string, error) {
+// ensure puts tn's tenant namespace, and everything deploymentproxy keeps in it, in place, and returns its name.
+func (r *Reconciler) ensure(ctx context.Context, tn *deploymentproxyv1.TenantNamespace, parent *corev1.Namespace) (string, error) {
 	cfg, err := r.Config()
 	if err != nil {
 		return "", err
@@ -250,7 +250,7 @@ func (r *Reconciler) ensure(ctx context.Context, tn *nsproxyv1.TenantNamespace, 
 	return name, r.deleteChildren(ctx, owner, name)
 }
 
-// ensureNamespace creates the tenant namespace, or puts back nsproxy's labels and annotation on it.
+// ensureNamespace creates the tenant namespace, or puts back deploymentproxy's labels and annotation on it.
 func (r *Reconciler) ensureNamespace(ctx context.Context, owner types.NamespacedName, name, deployment, tid string) error {
 	ns := &corev1.Namespace{}
 	err := r.Client.Get(ctx, types.NamespacedName{Name: name}, ns)
@@ -273,10 +273,10 @@ func (r *Reconciler) ensureNamespace(ctx context.Context, owner types.Namespaced
 		return err
 	}
 	if ns.Labels[OwnerLabel] != deployment {
-		return &refusal{ReasonNamespaceConflict, "namespace " + name + " exists and is not nsproxy's for deployment " + deployment}
+		return &refusal{ReasonNamespaceConflict, "namespace " + name + " exists and is not deploymentproxy's for deployment " + deployment}
 	}
 	if other, ok := ownerOf(ns); ok && other != owner {
-		if err := r.Client.Get(ctx, other, &nsproxyv1.TenantNamespace{}); err == nil {
+		if err := r.Client.Get(ctx, other, &deploymentproxyv1.TenantNamespace{}); err == nil {
 			return &refusal{ReasonNamespaceConflict, "namespace " + name + " is already TenantNamespace " + other.String() + "'s"}
 		} else if !apierrors.IsNotFound(err) {
 			return err
@@ -322,7 +322,7 @@ func (r *Reconciler) ensureObject(ctx context.Context, want client.Object) error
 	return r.Client.Update(ctx, got)
 }
 
-// copyContent copies nsproxy's labels, annotation and content from want into got, and reports whether got
+// copyContent copies deploymentproxy's labels, annotation and content from want into got, and reports whether got
 // changed.
 func copyContent(want, got client.Object) bool {
 	changed := false
@@ -390,7 +390,7 @@ func (r *Reconciler) deleteChildren(ctx context.Context, owner types.NamespacedN
 }
 
 // setStatus records the Ready condition and the tenant namespace's name, if they changed.
-func (r *Reconciler) setStatus(ctx context.Context, tn *nsproxyv1.TenantNamespace, child string, status metav1.ConditionStatus, reason, message string) error {
+func (r *Reconciler) setStatus(ctx context.Context, tn *deploymentproxyv1.TenantNamespace, child string, status metav1.ConditionStatus, reason, message string) error {
 	before := tn.DeepCopy()
 	tn.Status.Namespace = child
 	meta.SetStatusCondition(&tn.Status.Conditions, metav1.Condition{

@@ -17,13 +17,13 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	nsproxyv1 "github.com/tacplus-dev/nsproxy/api/v1"
+	deploymentproxyv1 "github.com/tacplus-dev/deploymentproxy/api/v1"
 )
 
-func newTenantNamespace(namespace, name, tid string) *nsproxyv1.TenantNamespace {
-	return &nsproxyv1.TenantNamespace{
+func newTenantNamespace(namespace, name, tid string) *deploymentproxyv1.TenantNamespace {
+	return &deploymentproxyv1.TenantNamespace{
 		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name},
-		Spec:       nsproxyv1.TenantNamespaceSpec{Tid: tid},
+		Spec:       deploymentproxyv1.TenantNamespaceSpec{Tid: tid},
 	}
 }
 
@@ -35,9 +35,9 @@ func create(t *testing.T, obj client.Object) {
 }
 
 // waitReady waits for tn's Ready condition to have status and reason, and returns tn as it is then.
-func waitReady(t *testing.T, tn *nsproxyv1.TenantNamespace, status metav1.ConditionStatus, reason string) *nsproxyv1.TenantNamespace {
+func waitReady(t *testing.T, tn *deploymentproxyv1.TenantNamespace, status metav1.ConditionStatus, reason string) *deploymentproxyv1.TenantNamespace {
 	t.Helper()
-	got := &nsproxyv1.TenantNamespace{}
+	got := &deploymentproxyv1.TenantNamespace{}
 	eventually(t, func() error {
 		if err := admin.Get(context.Background(), client.ObjectKeyFromObject(tn), got); err != nil {
 			return err
@@ -198,7 +198,7 @@ func TestExistingNamespaceNotAdopted(t *testing.T) {
 		Name:   "tac-beta-zyxwvuts",
 		Labels: map[string]string{OwnerLabel: "notbeta", TidLabel: "zyxwvuts"},
 	}}
-	create(t, other) // nsproxy's label, another deployment
+	create(t, other) // deploymentproxy's label, another deployment
 
 	for _, tid := range []string{"abcdefgh", "zyxwvuts"} {
 		tn := newTenantNamespace("tac-beta", "t-"+tid, tid)
@@ -219,7 +219,7 @@ func TestExistingNamespaceNotAdopted(t *testing.T) {
 				return err
 			}
 			if len(rbs.Items) != 0 {
-				return fmt.Errorf("%s: nsproxy wrote RoleBindings into it", name)
+				return fmt.Errorf("%s: deploymentproxy wrote RoleBindings into it", name)
 			}
 			return nil
 		})
@@ -266,7 +266,7 @@ func TestSameTidTwiceRefused(t *testing.T) {
 }
 
 // checkDefaults returns an error unless namespace child of deployment (asked for from parent) has every
-// default nsproxy gives it.
+// default deploymentproxy gives it.
 func checkDefaults(child, parent, deployment, pods string) error {
 	ctx := context.Background()
 	ns, err := getNamespace(child)
@@ -368,7 +368,7 @@ func TestPutBack(t *testing.T) {
 		t.Fatal(err)
 	}
 	q.Spec.Hard[corev1.ResourceServicesLoadBalancers] = resource.MustParse("5")
-	q.Labels = nil // even unlabelled, it is still nsproxy's to put back
+	q.Labels = nil // even unlabelled, it is still deploymentproxy's to put back
 	if err := admin.Update(ctx, q); err != nil {
 		t.Fatal(err)
 	}
@@ -420,7 +420,7 @@ func TestDeletingParentDeletesChildren(t *testing.T) {
 	ctx := context.Background()
 	deploymentNamespace(t, "tac-eta", "eta")
 	deploymentNamespace(t, "tac-theta", "theta")
-	var tns []*nsproxyv1.TenantNamespace
+	var tns []*deploymentproxyv1.TenantNamespace
 	for _, tid := range []string{"aaaaaaaa", "bbbbbbbb", "cccccccc"} {
 		tn := newTenantNamespace("tac-eta", "t-"+tid, tid)
 		create(t, tn)
@@ -443,7 +443,7 @@ func TestDeletingParentDeletesChildren(t *testing.T) {
 
 func TestDeletingParentAfterItsObjects(t *testing.T) {
 	// The namespace controller deletes a namespace's TenantNamespaces before the namespace itself; if
-	// nsproxy missed those deletions (it was down), the children are still found and deleted.
+	// deploymentproxy missed those deletions (it was down), the children are still found and deleted.
 	deploymentNamespace(t, "tac-iota", "iota")
 	tn := newTenantNamespace("tac-iota", "t", "abcdefgh")
 	create(t, tn)
@@ -473,7 +473,7 @@ func TestOperatorRBAC(t *testing.T) {
 	}
 	got := waitReady(t, tn, metav1.ConditionTrue, ReasonReady)
 
-	// Only nsproxy writes status.
+	// Only deploymentproxy writes status.
 	got.Status.Namespace = "kube-system"
 	if err := operator.Status().Update(ctx, got); !apierrors.IsForbidden(err) {
 		t.Errorf("operator writing status: got %v, want Forbidden", err)

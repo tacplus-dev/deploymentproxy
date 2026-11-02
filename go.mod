@@ -1,4 +1,4 @@
-module github.com/tacplus-dev/nsproxy
+module github.com/tacplus-dev/deploymentproxy
 
 go 1.27.3
 

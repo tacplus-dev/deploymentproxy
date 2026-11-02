@@ -1,6 +1,6 @@
 name: release
 
-# On a version tag vX.Y.Z: run the gates on the tag, publish ghcr.io/tacplus-dev/nsproxy:X.Y.Z for linux/amd64
+# On a version tag vX.Y.Z: run the gates on the tag, publish ghcr.io/tacplus-dev/deploymentproxy:X.Y.Z for linux/amd64
 # and linux/arm64, move the line tag X.Y when this is the line's highest release (scripts/release-tags.sh),
 # and create the GitHub release with the commits since the previous release (scripts/release-notes.sh).
 # A pre-release (vX.Y.Z-rc.N) publishes only its own tag. Fleets pin X.Y (tacplus-dev/tacplus#180).

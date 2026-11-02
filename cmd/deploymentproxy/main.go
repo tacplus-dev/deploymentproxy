@@ -1,4 +1,4 @@
-// Command nsproxy runs the TenantNamespace controller. It has no network listener.
+// Command deploymentproxy runs the TenantNamespace controller. It has no network listener.
 package main
 
 import (
@@ -12,19 +12,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	nsproxyv1 "github.com/tacplus-dev/nsproxy/api/v1"
-	"github.com/tacplus-dev/nsproxy/internal/config"
-	"github.com/tacplus-dev/nsproxy/internal/controller"
+	deploymentproxyv1 "github.com/tacplus-dev/deploymentproxy/api/v1"
+	"github.com/tacplus-dev/deploymentproxy/internal/config"
+	"github.com/tacplus-dev/deploymentproxy/internal/controller"
 )
 
 func main() {
-	configPath := flag.String("config", "/etc/nsproxy/config.yaml", "the config file (the nsproxy ConfigMap's config.yaml)")
+	configPath := flag.String("config", "/etc/deploymentproxy/config.yaml", "the config file (the deploymentproxy ConfigMap's config.yaml)")
 	resync := flag.Duration("resync", 10*time.Minute, "how often every TenantNamespace is reconciled again")
 	opts := zap.Options{}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
-	log := ctrl.Log.WithName("nsproxy")
+	log := ctrl.Log.WithName("deploymentproxy")
 
 	// Fail at start on a bad config; afterwards a bad edit is reported on each TenantNamespace.
 	if _, err := config.Load(*configPath); err != nil {
@@ -37,7 +37,7 @@ func main() {
 		log.Error(err, "scheme")
 		os.Exit(1)
 	}
-	if err := nsproxyv1.AddToScheme(scheme); err != nil {
+	if err := deploymentproxyv1.AddToScheme(scheme); err != nil {
 		log.Error(err, "scheme")
 		os.Exit(1)
 	}

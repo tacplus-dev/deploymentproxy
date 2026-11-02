@@ -15,7 +15,7 @@ import (
 // reaches reports whether every pod of namespace from may open a connection to every pod of namespace to,
 // on any port, under the NetworkPolicies of both: from's must allow the egress and to's the ingress. A
 // namespace with no policy of a direction allows it. envtest enforces no policies, so this evaluates them as a
-// network plugin would, for the policies nsproxy writes (every one selects every pod of its namespace).
+// network plugin would, for the policies deploymentproxy writes (every one selects every pod of its namespace).
 func reaches(from, to string) (bool, error) {
 	ctx := context.Background()
 	fromNS, err := getNamespace(from)
@@ -168,7 +168,7 @@ func TestSharedTenant(t *testing.T) {
 		})
 	})
 
-	// A namespace merely named like a deployment's restore tenant is not reached: it is chosen by nsproxy's
+	// A namespace merely named like a deployment's restore tenant is not reached: it is chosen by deploymentproxy's
 	// labels, and these are another deployment's.
 	create(t, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
 		Name:   "tac-xi-00000002",

@@ -2,29 +2,29 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nsproxy
-  namespace: nsproxy
+  name: deploymentproxy
+  namespace: deploymentproxy
 spec:
   replicas: 1
   strategy:
     type: Recreate
   selector:
     matchLabels:
-      app.kubernetes.io/name: nsproxy
+      app.kubernetes.io/name: deploymentproxy
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: nsproxy
+        app.kubernetes.io/name: deploymentproxy
     spec:
-      serviceAccountName: nsproxy
+      serviceAccountName: deploymentproxy
       securityContext:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - name: nsproxy
-          image: ghcr.io/tacplus-dev/nsproxy:0.1
-          args: [--config=/etc/nsproxy/config.yaml]
+        - name: deploymentproxy
+          image: ghcr.io/tacplus-dev/deploymentproxy:0.2
+          args: [--config=/etc/deploymentproxy/config.yaml]
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -38,9 +38,9 @@ spec:
               memory: 256Mi
           volumeMounts:
             - name: config
-              mountPath: /etc/nsproxy
+              mountPath: /etc/deploymentproxy
               readOnly: true
       volumes:
         - name: config
           configMap:
-            name: nsproxy
+            name: deploymentproxy

@@ -9,10 +9,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/tacplus-dev/nsproxy/internal/config"
+	"github.com/tacplus-dev/deploymentproxy/internal/config"
 )
 
-// desiredObjects are the objects nsproxy keeps in tenant namespace child of deployment, for tenant tid, asked
+// desiredObjects are the objects deploymentproxy keeps in tenant namespace child of deployment, for tenant tid, asked
 // for by TenantNamespace owner in namespace parent.
 func desiredObjects(owner types.NamespacedName, child, deployment, tid, parent string, cfg *config.Config) []client.Object {
 	om := func(name string) metav1.ObjectMeta {
@@ -44,7 +44,7 @@ func desiredObjects(owner types.NamespacedName, child, deployment, tid, parent s
 		},
 		{To: []networkingv1.NetworkPolicyPeer{{NamespaceSelector: namespace(parent)}}},
 	}
-	// The deployment's shared tenants (restore), chosen by nsproxy's labels: every tenant namespace of the
+	// The deployment's shared tenants (restore), chosen by deploymentproxy's labels: every tenant namespace of the
 	// deployment reaches each, and each accepts every tenant namespace of the deployment.
 	for _, shared := range cfg.SharedTids {
 		if shared == tid {

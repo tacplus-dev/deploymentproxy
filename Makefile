@@ -19,4 +19,4 @@ test:
 	KUBEBUILDER_ASSETS="$$($(SETUP_ENVTEST) use -p path $(ENVTEST_K8S_VERSION))" go test -count=1 ./...
 
 image:
-	docker build -t ghcr.io/tacplus-dev/nsproxy:latest .
+	docker build -t ghcr.io/tacplus-dev/deploymentproxy:latest .

@@ -1,24 +1,25 @@
-# nsproxy
+# deploymentproxy
 
-Creates and deletes **tenant namespaces** for the deployments on a Kubernetes cluster, so that a deployment
-needs no privilege outside its own namespace.
+The one component per cluster that holds cluster privilege on a deployment's behalf. Today it creates and
+deletes **tenant namespaces** for the deployments on a Kubernetes cluster, so that a deployment needs no
+privilege outside its own namespace. It was formerly nsproxy, renamed in v0.2.0
+([decision](https://github.com/tacplus-dev/roadmap/blob/main/decisions/deploymentproxy-2026-11-02.md)).
 
 Several deployments share one cluster. The top pipeline creates each deployment's namespace,
-`tac-<deployment>`, and deploys nsproxy once per cluster. A deployment's operator, running in
-`tac-<deployment>`, asks nsproxy to create or delete its tenants' namespaces, `tac-<deployment>-<tid>`
+`tac-<deployment>`, and deploys deploymentproxy once per cluster. A deployment's operator, running in
+`tac-<deployment>`, asks deploymentproxy to create or delete its tenants' namespaces, `tac-<deployment>-<tid>`
 (a tid is 8 characters of `[0-9a-z]`; all-digit ids are reserved, `people` is `00000001`, `restore` is
-`00000002`). nsproxy is the only
-thing holding the cluster-wide permission, and it uses it narrowly.
+`00000002`). deploymentproxy is the only thing holding the cluster-wide permission, and it uses it narrowly.
 
 Work arrives as issues; see github.com/tacplus-dev/looper.
 
 ## How it works
 
-nsproxy is a Kubernetes controller for one custom resource, `TenantNamespace` (`nsproxy.tacplus.dev/v1`). It
-has no network listener. The operator creates one in its own namespace:
+deploymentproxy is a Kubernetes controller for one custom resource, `TenantNamespace`
+(`deploymentproxy.tacplus.dev/v1`). It has no network listener. The operator creates one in its own namespace:
 
 ```yaml
-apiVersion: nsproxy.tacplus.dev/v1
+apiVersion: deploymentproxy.tacplus.dev/v1
 kind: TenantNamespace
 metadata:
   name: acme
@@ -36,26 +37,27 @@ refused, `Ready=False` and the reason says why (`NotDeploymentNamespace`, `InTen
   create `TenantNamespace` objects there and nowhere else.
 - **The deployment** comes from the parent namespace's `tacplus.dev/deployment` label (set by the pipeline),
   never from its name. Objects in an unlabelled namespace, or in a tenant namespace, are refused.
-- **The tenant namespace** carries `nsproxy.tacplus.dev/deployment` and `nsproxy.tacplus.dev/tid` labels and
-  holds: a RoleBinding making `operator` of the deployment namespace `admin` there; NetworkPolicies denying
-  everything except traffic inside the namespace, DNS, egress to the deployment namespace, and traffic with
-  the deployment's shared tenants; a ResourceQuota from the ConfigMap, always with no load balancers and no
-  node ports. Anything changed or deleted by hand, the namespace included, is put back.
+- **The tenant namespace** carries `deploymentproxy.tacplus.dev/deployment` and
+  `deploymentproxy.tacplus.dev/tid` labels and holds: a RoleBinding making `operator` of the deployment
+  namespace `admin` there; NetworkPolicies denying everything except traffic inside the namespace, DNS, egress
+  to the deployment namespace, and traffic with the deployment's shared tenants; a ResourceQuota from the
+  ConfigMap, always with no load balancers and no node ports. Anything changed or deleted by hand, the
+  namespace included, is put back.
 - **Shared tenants** (`sharedTids` in the ConfigMap; shipped: `restore`, `00000002`) are reserved tenants every
   tenant of the same deployment may call: each tenant namespace of a deployment gets egress to
   `tac-<deployment>-<shared tid>`, and that namespace accepts ingress from them. Both sides are chosen by
-  nsproxy's own labels, so nothing crosses deployments; every other tenant namespace is reachable from no
-  other. `people` is not shared: the deployment namespace calls it.
-- **Only what it owns:** nsproxy changes or deletes a namespace only if it carries its owner label for the same
-  deployment; an existing namespace of the same name without it is refused, never adopted. It never touches a
-  deployment namespace. Deleting a deployment namespace deletes all its tenant namespaces.
+  deploymentproxy's own labels, so nothing crosses deployments; every other tenant namespace is reachable from
+  no other. `people` is not shared: the deployment namespace calls it.
+- **Only what it owns:** deploymentproxy changes or deletes a namespace only if it carries its owner label for
+  the same deployment; an existing namespace of the same name without it is refused, never adopted. It never
+  touches a deployment namespace. Deleting a deployment namespace deletes all its tenant namespaces.
 
 ## Manifests
 
 | | |
 |---|---|
 | `config/crd` | the `TenantNamespace` CRD (schema, `tid` pattern, CEL immutability rule) |
-| `config/rbac` | nsproxy's service account, ClusterRole and binding |
+| `config/rbac` | deploymentproxy's service account, ClusterRole and binding |
 | `config/manager` | its namespace, Deployment and ConfigMap (reserved and shared tids, quota default and per-deployment overrides) |
 | `config/deployment-namespace` | the Role the pipeline applies in each deployment namespace: `NAMESPACE=tac-<deployment> envsubst '$NAMESPACE' < config/deployment-namespace/operator.yaml \| kubectl apply -f -` |
 
@@ -63,11 +65,11 @@ refused, `Ready=False` and the reason says why (`NotDeploymentNamespace`, `InTen
 
 `make check` runs the gates: gofmt, `go vet`, build, and the tests. The controller tests run a real API server
 ([envtest](https://book.kubebuilder.io/reference/envtest), fetched by `setup-envtest`) with the CRD, and run the
-controller as nsproxy's service account under the RBAC manifests above. `make image` builds the container image.
+controller as deploymentproxy's service account under the RBAC manifests above. `make image` builds the container image.
 
 ## Releasing
 
-nsproxy is released by version, and fleets pin a release line, `MAJOR.MINOR`, which is always that line's
+deploymentproxy is released by version, and fleets pin a release line, `MAJOR.MINOR`, which is always that line's
 highest patch ([tacplus#180](https://github.com/tacplus-dev/tacplus/issues/180)). Versions are `0.x` until
 SeaBeam's launch (2026-12-01), when `1.0.0` is cut; on `0.x` a minor may break, a patch never does.
 
@@ -82,7 +84,7 @@ git push origin v0.1.1
 A new minor also moves the image in `config/manager/deployment.yaml` to its line, in the commit it tags.
 
 The tag runs [release.yml](.github/workflows/release.yml): the gates on the tag, then
-`ghcr.io/tacplus-dev/nsproxy:<version>` for linux/amd64 and linux/arm64, labelled with the version and commit
+`ghcr.io/tacplus-dev/deploymentproxy:<version>` for linux/amd64 and linux/arm64, labelled with the version and commit
 (`org.opencontainers.image.version`, `.revision`), and `:<MAJOR.MINOR>` moved to it only when it is the line's
 highest patch, so the line tag never goes backwards and no other line moves
 ([scripts/release-tags.sh](scripts/release-tags.sh)). The GitHub release's notes are the commits since the
