@@ -17,6 +17,15 @@ spec:
         app.kubernetes.io/name: deploymentproxy
     spec:
       serviceAccountName: deploymentproxy
+      # arm64 everywhere (GKE Axion): GKE taints Arm nodes kubernetes.io/arch=arm64:NoSchedule and tolerates it
+      # only for a pod that selects arm64; the explicit toleration covers a cluster that does not add one (#11).
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      tolerations:
+        - key: kubernetes.io/arch
+          operator: Equal
+          value: arm64
+          effect: NoSchedule
       securityContext:
         runAsNonRoot: true
         seccompProfile:
