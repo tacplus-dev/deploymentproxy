@@ -153,6 +153,11 @@ right on pods.
 | `config/manager` | its namespace, Deployment and ConfigMap (reserved and shared tids, quota default and per-deployment overrides, chaos exclusions and failure image) |
 | `config/deployment-namespace` | the Roles the pipeline applies in each deployment namespace: `operator.yaml` (`TenantNamespace`, for `operator`) and `chaos.yaml` (`PodFault`, for `chaos-controller`), each with `NAMESPACE=tac-<deployment> envsubst '$NAMESPACE' < config/deployment-namespace/<file> \| kubectl apply -f -` |
 
+Every pod template runs on arm64 nodes (the platform runs arm64 everywhere, GKE Axion): it selects
+`kubernetes.io/arch: arm64` and tolerates the `kubernetes.io/arch=arm64:NoSchedule` taint GKE puts on Arm nodes,
+explicitly, for a cluster that does not add the toleration itself ([#11](https://github.com/tacplus-dev/deploymentproxy/issues/11)).
+A test (`manifests_test.go`) holds every pod template under `config/` to it.
+
 ## Build and test
 
 `make check` runs the gates: gofmt, `go vet`, build, and the tests. The controller tests run a real API server
