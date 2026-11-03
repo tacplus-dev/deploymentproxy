@@ -9,3 +9,4 @@ Append-only: add entries at the end, never edit or remove one (CI enforces it). 
 - 2026-10-28 looper release v0.1.4 (https://github.com/tacplus-dev/nsproxy/releases/tag/v0.1.4)
 - 2026-11-02 looper issue Rename nsproxy to deploymentproxy: module, API group, labels, image, docs (v0.2.0) (#9, 7f55164)
 - 2026-11-02 looper release v0.2.0 (https://github.com/tacplus-dev/deploymentproxy/releases/tag/v0.2.0)
+- 2026-11-03 looper issue Pods can't schedule on Axion (arm64) nodes: no arm64 nodeSelector or toleration for GKE's kubernetes.io/arch taint (#11, 30da9ef)
