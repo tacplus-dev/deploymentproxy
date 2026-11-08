@@ -1,5 +1,6 @@
-// Package config is deploymentproxy's configuration: the reserved tids it accepts, the quota it gives each deployment's tenant namespaces, and what chaos faults may not
-// target. It is read from the deploymentproxy ConfigMap, mounted as a file.
+// Package config is deploymentproxy's configuration: the reserved tids it accepts, the quota it gives each
+// deployment's tenant namespaces, and what chaos faults may not target. It is read from the deploymentproxy
+// ConfigMap, mounted as a file.
 package config
 
 import (
