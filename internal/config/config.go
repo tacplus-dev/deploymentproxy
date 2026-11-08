@@ -1,5 +1,4 @@
-// Package config is deploymentproxy's configuration: the reserved tids it accepts, those every tenant of a
-// deployment may reach, the quota it gives each deployment's tenant namespaces, and what chaos faults may not
+// Package config is deploymentproxy's configuration: the reserved tids it accepts, the quota it gives each deployment's tenant namespaces, and what chaos faults may not
 // target. It is read from the deploymentproxy ConfigMap, mounted as a file.
 package config
 
@@ -24,9 +23,8 @@ type Config struct {
 	// ReservedTids are the all-digit tids deploymentproxy accepts (people is 00000001). Every other all-digit tid
 	// is refused.
 	ReservedTids []string `json:"reservedTids,omitempty"`
-	// SharedTids are reserved tids whose tenant namespace every tenant namespace of the same deployment may
-	// reach (restore is 00000002), and which accepts traffic from them. No other tenant namespace is
-	// reachable from another.
+	// SharedTids has no effect: it chose the shared tenants of the NetworkPolicies deploymentproxy no longer
+	// keeps (#14). It is still accepted, and checked to be reserved tids, so that existing ConfigMaps load.
 	SharedTids []string `json:"sharedTids,omitempty"`
 	Quota      Quota    `json:"quota,omitempty"`
 	Chaos      Chaos    `json:"chaos,omitempty"`

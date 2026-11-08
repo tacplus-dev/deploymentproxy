@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -290,31 +289,6 @@ func checkDefaults(child, parent, deployment, pods string) error {
 		return fmt.Errorf("RoleBinding: roleRef %+v subjects %+v", rb.RoleRef, rb.Subjects)
 	}
 
-	deny := &networkingv1.NetworkPolicy{}
-	if err := admin.Get(ctx, types.NamespacedName{Namespace: child, Name: DenyPolicyName}, deny); err != nil {
-		return err
-	}
-	if len(deny.Spec.PodSelector.MatchLabels)+len(deny.Spec.PodSelector.MatchExpressions) != 0 ||
-		len(deny.Spec.PolicyTypes) != 2 || len(deny.Spec.Ingress)+len(deny.Spec.Egress) != 0 {
-		return fmt.Errorf("default-deny policy: %+v", deny.Spec)
-	}
-	allow := &networkingv1.NetworkPolicy{}
-	if err := admin.Get(ctx, types.NamespacedName{Namespace: child, Name: AllowPolicyName}, allow); err != nil {
-		return err
-	}
-	reachesParent := false
-	for _, e := range allow.Spec.Egress {
-		for _, p := range e.To {
-			if p.NamespaceSelector != nil && p.PodSelector == nil &&
-				p.NamespaceSelector.MatchLabels[corev1.LabelMetadataName] == parent && len(e.Ports) == 0 {
-				reachesParent = true
-			}
-		}
-	}
-	if !reachesParent {
-		return fmt.Errorf("allow policy does not let %s reach %s: %+v", child, parent, allow.Spec)
-	}
-
 	q := &corev1.ResourceQuota{}
 	if err := admin.Get(ctx, types.NamespacedName{Namespace: child, Name: QuotaName}, q); err != nil {
 		return err
@@ -358,9 +332,6 @@ func TestPutBack(t *testing.T) {
 
 	// Objects inside it, changed or deleted by hand.
 	if err := admin.Delete(ctx, &rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Namespace: child, Name: RoleBindingName}}); err != nil {
-		t.Fatal(err)
-	}
-	if err := admin.Delete(ctx, &networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: child, Name: DenyPolicyName}}); err != nil {
 		t.Fatal(err)
 	}
 	q := &corev1.ResourceQuota{}

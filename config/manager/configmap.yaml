@@ -1,6 +1,5 @@
 # reservedTids: the all-digit tids accepted (all others are refused); people is 00000001, restore 00000002.
-# sharedTids: reserved tids whose tenant namespace every tenant namespace of the same deployment may reach
-# (and which accepts them); never across deployments. people is not shared: the deployment namespace calls it.
+# sharedTids: no effect since #14 (deploymentproxy keeps no NetworkPolicies); still accepted, so it may stay.
 # quota.default: every tenant namespace's ResourceQuota; quota.deployments.<name>: merged over it for that
 # deployment. services.loadbalancers and services.nodeports are always 0, whatever is set here.
 # chaos.excludedNamespaces and chaos.excludedServices (app.kubernetes.io/name values): no fault targets them, on
@@ -15,7 +14,6 @@ metadata:
 data:
   config.yaml: |
     reservedTids: ["00000001", "00000002"]
-    sharedTids: ["00000002"]
     quota:
       default:
         pods: "100"

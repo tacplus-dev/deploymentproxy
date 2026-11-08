@@ -40,15 +40,16 @@ refused, `Ready=False` and the reason says why (`NotDeploymentNamespace`, `InTen
   never from its name. Objects in an unlabelled namespace, or in a tenant namespace, are refused.
 - **The tenant namespace** carries `deploymentproxy.tacplus.dev/deployment` and
   `deploymentproxy.tacplus.dev/tid` labels and holds: a RoleBinding making `operator` of the deployment
-  namespace `admin` there; NetworkPolicies denying everything except traffic inside the namespace, DNS, egress
-  to the deployment namespace, and traffic with the deployment's shared tenants; a ResourceQuota from the
-  ConfigMap, always with no load balancers and no node ports. Anything changed or deleted by hand, the
-  namespace included, is put back.
-- **Shared tenants** (`sharedTids` in the ConfigMap; shipped: `restore`, `00000002`) are reserved tenants every
-  tenant of the same deployment may call: each tenant namespace of a deployment gets egress to
-  `tac-<deployment>-<shared tid>`, and that namespace accepts ingress from them. Both sides are chosen by
-  deploymentproxy's own labels, so nothing crosses deployments; every other tenant namespace is reachable from
-  no other. `people` is not shared: the deployment namespace calls it.
+  namespace `admin` there, and a ResourceQuota from the ConfigMap, always with no load balancers and no node
+  ports. Anything changed or deleted by hand, the namespace included, is put back.
+- **No NetworkPolicies:** isolation is the bearer token checked at every door (tacplus's generated
+  authorizers), not reachability: a cross-deployment or cross-tenant call is refused by the callee, whatever
+  the network lets through
+  ([decision](https://github.com/tacplus-dev/roadmap/blob/main/decisions/s2s-never-crosses-tenants-2026-10-31.md),
+  addendum 2026-11-07 (2)). deploymentproxy keeps none in a tenant namespace, and removes on reconcile the
+  baseline ones earlier versions kept (`deploymentproxy-default-deny`, `deploymentproxy-allow`); the
+  operator's own are left alone. The ConfigMap's `sharedTids`, which shaped them, has no effect and is still
+  accepted.
 - **Only what it owns:** deploymentproxy changes or deletes a namespace only if it carries its owner label for
   the same deployment; an existing namespace of the same name without it is refused, never adopted. It never
   touches a deployment namespace. Deleting a deployment namespace deletes all its tenant namespaces.
@@ -150,7 +151,7 @@ right on pods.
 |---|---|
 | `config/crd` | the `TenantNamespace` CRD (schema, `tid` pattern, CEL immutability rule) and the `PodFault` CRD |
 | `config/rbac` | deploymentproxy's service account, ClusterRole and binding |
-| `config/manager` | its namespace, Deployment and ConfigMap (reserved and shared tids, quota default and per-deployment overrides, chaos exclusions and failure image) |
+| `config/manager` | its namespace, Deployment and ConfigMap (reserved tids, quota default and per-deployment overrides, chaos exclusions and failure image) |
 | `config/deployment-namespace` | the Roles the pipeline applies in each deployment namespace: `operator.yaml` (`TenantNamespace`, for `operator`) and `chaos.yaml` (`PodFault`, for `chaos-controller`), each with `NAMESPACE=tac-<deployment> envsubst '$NAMESPACE' < config/deployment-namespace/<file> \| kubectl apply -f -` |
 
 Every pod template runs on arm64 nodes (the platform runs arm64 everywhere, GKE Axion): it selects

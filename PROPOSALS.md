@@ -30,5 +30,11 @@ the looper then marks it `promoted` or `declined` here with the date.
   If the delete itself had failed and the pod went away for another reason (a rollout) before the retry, the
   status reports a kill deploymentproxy did not do. Recording "delete accepted" needs one more status write
   between the delete and `Applied`; worth it only if triage is misled in practice.
+- **Drop `sharedTids` from the config** (2026-11-08, #14): it only shaped the NetworkPolicies #14 removed, and is
+  still accepted (with no effect) so that existing ConfigMaps load under `UnmarshalStrict`. The next minor could
+  remove the field, after the deployments' ConfigMaps no longer set it.
+- **Stop removing the retired NetworkPolicies** (2026-11-08, #14): every reconcile issues two DELETEs (answered
+  NotFound once they are gone) for `deploymentproxy-default-deny` and `deploymentproxy-allow`. Once every cluster
+  has run a version with #14, a later minor can drop `retiredObjects` and the `delete` grant on networkpolicies.
 
 ## Promoted / declined

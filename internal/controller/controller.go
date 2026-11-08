@@ -13,7 +13,6 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -47,9 +46,11 @@ const (
 	OwnerAnnotation = "deploymentproxy.tacplus.dev/owner"
 
 	RoleBindingName = "deploymentproxy-operator-admin"
+	QuotaName       = "deploymentproxy-quota"
+	// DenyPolicyName and AllowPolicyName are the NetworkPolicies earlier versions kept in a tenant namespace;
+	// deploymentproxy now removes them (retiredObjects).
 	DenyPolicyName  = "deploymentproxy-default-deny"
 	AllowPolicyName = "deploymentproxy-allow"
-	QuotaName       = "deploymentproxy-quota"
 
 	// OperatorServiceAccount is the service account, in the deployment namespace, made admin of each of
 	// its tenant namespaces.
@@ -95,9 +96,8 @@ func CacheOptions() cache.Options {
 	}
 	sel := labels.NewSelector().Add(*owned)
 	return cache.Options{ByObject: map[client.Object]cache.ByObject{
-		&rbacv1.RoleBinding{}:         {Label: sel},
-		&networkingv1.NetworkPolicy{}: {Label: sel},
-		&corev1.ResourceQuota{}:       {Label: sel},
+		&rbacv1.RoleBinding{}:   {Label: sel},
+		&corev1.ResourceQuota{}: {Label: sel},
 	}}
 }
 
@@ -124,7 +124,6 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&deploymentproxyv1.TenantNamespace{}).
 		Watches(&corev1.Namespace{}, handler.EnqueueRequestsFromMapFunc(r.mapNamespace)).
 		Watches(&rbacv1.RoleBinding{}, toOwner).
-		Watches(&networkingv1.NetworkPolicy{}, toOwner).
 		Watches(&corev1.ResourceQuota{}, toOwner).
 		Complete(r)
 }
@@ -236,8 +235,13 @@ func (r *Reconciler) ensure(ctx context.Context, tn *deploymentproxyv1.TenantNam
 	if err := r.ensureNamespace(ctx, owner, name, deployment, tn.Spec.Tid); err != nil {
 		return "", err
 	}
-	for _, obj := range desiredObjects(owner, name, deployment, tn.Spec.Tid, parent.Name, cfg) {
+	for _, obj := range desiredObjects(owner, name, deployment, parent.Name, cfg) {
 		if err := r.ensureObject(ctx, obj); err != nil {
+			return "", err
+		}
+	}
+	for _, obj := range retiredObjects(name) {
+		if err := r.Client.Delete(ctx, obj); err != nil && !apierrors.IsNotFound(err) {
 			return "", err
 		}
 	}
@@ -361,11 +365,6 @@ func copyContent(want, got client.Object) bool {
 		w := want.(*rbacv1.RoleBinding)
 		if !equality.Semantic.DeepEqual(g.Subjects, w.Subjects) {
 			g.Subjects, changed = w.Subjects, true
-		}
-	case *networkingv1.NetworkPolicy:
-		w := want.(*networkingv1.NetworkPolicy)
-		if !equality.Semantic.DeepEqual(g.Spec, w.Spec) {
-			g.Spec, changed = w.Spec, true
 		}
 	case *corev1.ResourceQuota:
 		w := want.(*corev1.ResourceQuota)
