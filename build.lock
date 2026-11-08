@@ -1,0 +1,6 @@
+# The build image of tacplus-dev/deploymentproxy, by digest (#13; looper#71): tacplus build 2.6.1, the image of
+# the platform's 2.6 line, with go 1.27.3 (go.mod's floor), make and just, in which the gates (`just gates`, that
+# is `make check`) run without Docker. deploymentproxy is no tacplus project, so it has no tacplus.lock; the build
+# pipeline (looper-build plan) reads this pin the way it reads one. A new digest is a change like any other: it
+# lands on the full gates.
+build_image: ghcr.io/tacplus-dev/tacplus/build:2.6.1@sha256:91f42995e0e3d6f959a7f75177caf94b2aded90fc36c8492dbcd320ca0d187f5
