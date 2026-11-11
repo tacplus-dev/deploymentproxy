@@ -8,7 +8,10 @@ the looper then marks it `promoted` or `declined` here with the date.
   `govulncheck ./...` in `make check` would fail a push that reaches a known vulnerability. It would also fail
   CI when a new advisory lands without any change, which is the trade-off to decide. #8 adds a case: an advisory
   deploymentproxy does not reach in source still ships in the binary and fails a `govulncheck -mode binary` scan
-  of the image, so the gate would want both modes (source on `make check`, binary on `make image`).
+  of the image, so the gate would want both modes (source on `make check`, binary on `make image`). #17
+  (2026-11-11) is a third: GO-2026-6859 in go1.27.3's net/http, again found by the nightly scan. The installed
+  govulncheck there was built with go1.26 and could not load the go1.27 packages, so the gate should build its
+  govulncheck with the floor toolchain.
 - **TestPutBack flake** (2026-11-02, #9): once in five runs under load, `TestPutBack` failed at
   `controller_test.go:391: tac-eps-abcdefgh is being deleted` (the namespace deleted by hand, with its finalizers
   cleared by `removeNamespace`, still had a deletion timestamp 30s later); the four reruns passed. Worth finding
