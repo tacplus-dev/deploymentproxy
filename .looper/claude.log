@@ -1,0 +1,111 @@
+= init
+= thinking_tokens
+= thinking_tokens
+> Bash git status --short && git diff && git log --oneline -3 && gh issue view 17 --repo tacplus-dev/deploymentproxy --comments | tail -30
+<  M README.md  M STATE.md  M build.lock  M go.mod diff --git a/README.md b/README.md index 85cd8eb..f3c6d8b 100644 --- a/README.md +++ b/README.md @@ -166,7 +166,7 @@ A test (`manifests_test.go`) holds every pod template under `config/` to it.  controllers as deploymentproxy's service account under t...
+= thinking_tokens
+= thinking_tokens
+> Bash which glab curl jq; ls /builds/tacplus-dev/looper/looper-runs/20261111T180551Z-issue-17/ 2>&1; curl -s https://gitlab.com/api/v4/projects/tacplus-dev%2Fbuild/pipelines/3054911933 | head -c 800; echo; curl -s "https://gitlab.com/api/v4/projects/tacplus-dev%2Fbuild/pipelines/3054911933/jobs" | jq -r '...
+< /usr/local/bin/glab /usr/bin/curl /usr/bin/jq builds builds.log claude.log comments prompt.md resumed-step {"message":"404 Project Not Found"} jq: error (at <stdin>:0): Cannot index string with string "id"
+> Bash cd /builds/tacplus-dev/looper/looper-runs/20261111T180551Z-issue-17/; ls builds; tail -20 builds.log; glab api projects/tacplus-dev%2Fbuild/pipelines/3054911933 2>&1 | head -c 600; echo; glab api projects/tacplus-dev%2Fbuild/pipelines/3054911933/jobs 2>&1 | jq -r '.[] | [.id,.name,.status,.started_a...
+< {"message":"404 Project Not Found"}glab: 404 Project Not Found (HTTP 404)  jq: error (at <stdin>:1): Cannot index string with string "id" jq: parse error: Invalid numeric literal at line 1, column 40 Shell cwd was reset to /builds/looper/deploymentproxy/issues/17
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+> Bash cat justfile; grep -n -A6 -i 'envtest\|^check\|setup' Makefile | head -60; /usr/local/bin/repo-looper --help 2>&1 | head -40
+< # The gates the build pipeline runs (`just gates`, in the image build.lock pins) and a land runs: make check, without # Docker. `make image` (Docker) is not a gate there; the release workflow builds the image. gates:     make check 1:# The gates: make check (formatting, vet, build, tests). Tests run...
+= thinking_tokens
+= thinking_tokens
+> Bash ls /builds/tacplus-dev/looper/looper-runs/ 2>&1 | tail -20; grep -rl "no verdict within" /builds/tacplus-dev/looper/looper-runs/*/builds.log 2>/dev/null | head; gh search issues "no verdict within 3h" --owner tacplus-dev --updated ">=2026-11-10" --json repository,number,title 2>&1 | head -40
+< 20261111T180551Z-issue-17 [{"number":26,"repository":{"name":"operator","nameWithOwner":"tacplus-dev/operator"},"title":"Dockerfile has no USER: semgrep missing-user-entrypoint (HIGH) on Dockerfile:5 fails the build's security checks"},{"number":25,"repository":{"name":"llmproxy","nameWithOwner":"ta...
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+> Bash for r in blobstore#19 tenantecho#11 coop#9 pigeon#10 looper#109; do repo=${r%#*}; n=${r#*#}; echo "== $r"; gh issue view $n --repo tacplus-dev/$repo --json state,comments --jq '.state, (.comments[-3:][] | .author.login + ": " + (.body|.[0:400]))'; done 2>&1 | head -120
+< == blobstore#19 OPEN tacplus-looper: Status at 14:53Z, 2026-11-11. This run ends. The land stays queued, and the issue now waits on tacplus-dev/cluster#18.  - **Committed:** 32297cb on `looper/blobstore-19`, rebased on main 5eef67e. `tacplus.lock` now pins `tacplus: 2.6.8` / `ghcr.io/tacplus-dev/tac...
+The build service is giving no verdict platform-wide; sibling issues are blocked on looper#113 and cluster#18. Checking those.
+> Bash for r in looper#113 cluster#18; do repo=${r%#*}; n=${r#*#}; echo "== $r"; gh issue view $n --repo tacplus-dev/$repo --json state,title,body,comments --jq '.state, .title, (.body|.[0:1200]), (.comments[-2:][] | .author.login + ": " + (.body|.[0:600]))'; done
+< == looper#113 OPEN Triggered tacplus-dev/build pipelines never report: no commit status, not even pending, and --build waits 3h for nothing (website 325305c, launcher 88cfeae) ## Actual (2026-11-09) `repo-looper --repo website --issue 2 --build` triggered tacplus-dev/build pipeline 3043233750 for we...
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+> Bash gh pr view 19 --repo tacplus-dev/deploymentproxy --json state,title,baseRefName,mergeable,statusCheckRollup --jq '.state,.title,.baseRefName,.mergeable,.statusCheckRollup' && git fetch -q origin && git log --oneline -1 origin/main && go version && /usr/local/bin/looper-trace check 2>&1 | tail -2
+= task_started
+= task_notification
+< OPEN [release/0.2] Go floor go 1.27.4: clear GO-2026-6859 (#17) release/0.2 MERGEABLE [{"__typename":"CheckRun","completedAt":"2026-11-11T12:05:38Z","conclusion":"SUCCESS","detailsUrl":"https://github.com/tacplus-dev/deploymentproxy/actions/runs/43016712092/job/130509490294","name":"check","startedA...
+Main hasn't moved and the backport's CI is green. Re-checking govulncheck on the change, then committing.
+> Bash G=$(command -v govulncheck || echo ~/go/bin/govulncheck); $G ./... 2>&1 | tail -2; d=$(mktemp -d); CGO_ENABLED=0 go build -trimpath -o $d/dp ./cmd/deploymentproxy && $G -mode binary $d/dp 2>&1 | tail -2; gofmt -l . ; go vet ./... && echo vet-ok
+= task_started
+= task_notification
+< For details on package patterns, see https://pkg.go.dev/cmd/go#hdr-Package_lists_and_patterns.  No vulnerabilities found. vet-ok
+> Bash G=$(command -v govulncheck || echo ~/go/bin/govulncheck); echo $G; $G ./... 2>&1 | head -8
+= task_started
+= task_notification
+< /usr/local/bin/govulncheck govulncheck: loading packages:  There are errors with the provided package patterns:  /builds/looper/deploymentproxy/homes/looper-17/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.4.linux-arm64/src/internal/poll/splice_linux.go:237:21: unknown field rfd in struct literal of...
+The system govulncheck is built with an older Go and can't load a go 1.27 module (that's looper#109). I'll build govulncheck v1.9.0 with go1.27.4, as the previous run did.
+> Bash d=$(mktemp -d) && GOBIN=$d GOTOOLCHAIN=go1.27.4 go install golang.org/x/vuln/cmd/govulncheck@v1.9.0 && go version $d/govulncheck && $d/govulncheck ./... 2>&1 | tail -3 && CGO_ENABLED=0 go build -trimpath -o $d/dp ./cmd/deploymentproxy && $d/govulncheck -mode binary $d/dp 2>&1 | tail -2
+= task_started
+= task_notification
+< go: downloading golang.org/x/vuln v1.9.0 go: downloading golang.org/x/telemetry v0.0.0-20261010193011-f71dc92da45e go: downloading golang.org/x/mod v0.42.0 go: downloading golang.org/x/tools v0.52.0 /builds/looper/deploymentproxy/homes/looper-17/tmp/tmp.uiiOOGzf03/govulncheck: go1.27.4 No vulnerabil...
+Both scans are clean. Committing, checkpointing, and queueing the land.
+> Bash git add go.mod build.lock README.md STATE.md && git commit -q -F - <<'EOF' Go floor go 1.27.4, build pinned to tacplus build 2.6.8: clear GO-2026-6859 (#17)  govulncheck finds GO-2026-6859 (net/http MaxBytesReader header race, fixed in go1.27.4) reachable from the controller manager and shipped in t...
+< 98fabfd Go floor go 1.27.4, build pinned to tacplus build 2.6.8: clear GO-2026-6859 (#17) [2026-11-11T18:10:54Z] checkpoint of #17 (a step) pushed to looper/deploymentproxy-17:  6 files changed, 306 insertions(+), 11 deletions(-)
+> Bash nohup /usr/local/bin/repo-looper --repo deploymentproxy --issue 17 --land > /tmp/land17.log 2>&1 & echo pid=$!
+< pid=22990
+> Monitor until grep -qi 'queued' /tmp/land17.log || ! kill -0 22990 2>/dev/null; do sleep 10; done; cat /tmp/land17.log
+= permission_denied
+< This Bash command contains multiple operations. The following parts require approval: grep -qi 'queued' /tmp/land17.log, kill -0 22990, cat /tmp/land17.log
+> Bash cat /tmp/land17.log
+< [2026-11-11T18:10:59Z] checkpoint of #17 (land queued) pushed to looper/deploymentproxy-17:  7 files changed, 313 insertions(+), 11 deletions(-) [2026-11-11T18:11:01Z] queued: the manager of deploymentproxy merges looper/deploymentproxy-17 after the lands queued before it, one at a time, and says on...
+= thinking_tokens
+= thinking_tokens
+= thinking_tokens
+The land is queued. With no runner, waiting on it would only reach another 3h timeout, so I'll post the status and mark the issue blocked on cluster#18.
+> Bash gh issue comment 17 --repo tacplus-dev/deploymentproxy --body-file - <<'EOF' Status at 18:12Z, 2026-11-11. The fix is queued again but not landed, and nothing is tagged. This issue now waits on tacplus-dev/cluster#18.  **Why the last land was red:** no gate failed. Both build jobs of this change (pi...
+< https://github.com/tacplus-dev/deploymentproxy/issues/17#issuecomment-6803625825 Blocked-by: tacplus-dev/cluster#18
+I've queued the fix for #17 again, but it hasn't landed: the build service has no runner to run the gates, so this issue now waits on tacplus-dev/cluster#18.
+
+- **Why the last land was red:** no gate failed. Both build jobs of the change ended with `no verdict within 3h`. Four other repositories doing the same re-pin to tacplus build 2.6.8 (blobstore, tenantecho, coop, pigeon) and looper#109 hit the same timeout. tacplus-dev/build has no runner for its jobs: looper#113 records the symptom, and cluster#18 is the cause. It is the hub's build runner setup, still waiting on Jody's GitLab/GCP steps.
+- **The change:** I committed the previous run's work again as 98fabfd on current main (fe44a0a). `go.mod` declares `go 1.27.4`, `build.lock` pins tacplus build 2.6.8 by digest (it has go1.27.4), and README and STATE.md match. It was queued with the manager at 18:11Z on the full gates.
+- **Checked locally:** `govulncheck ./...` and `govulncheck -mode binary` on a built binary both print `No vulnerabilities found.` `gofmt` and `go vet` pass, and `looper-trace check` passes with no handlers changed. The govulncheck already installed on this machine can't load a go 1.27 module (looper#109), so I built v1.9.0 with go1.27.4 to run the scans.
+- **Not run:** `just gates` in the pinned image, since there is no runner.
+- **Release:** no patch is cut from main, because it has a feature since v0.2.0 (#10). The backport, pull request #19 against `release/0.2`, is open, mergeable and green in CI. Tag `v0.2.3` at its merge commit once it merges.
+
+I posted this status on #17 and wrote `Blocked-by: tacplus-dev/cluster#18` to the run's outcome file, which ends this run. The land stays queued with the manager, so it merges once a runner exists and the gates pass. After that, the next run tags v0.2.3 when #19 merges, posts the final comment and closes #17.
+= success: I've queued the fix for #17 again, but it hasn't landed: the build service has no runner to run the gates, so this issue now waits on tacplus-dev/cluster#18.
+
+- **Why the last land was red:** no gate failed. Both build jobs of the change ended with `no verdict within 3h`. Four other repositories doing the same re-pin to tacplus build 2.6.8 (blobstore, tenantecho, coop, pigeon) and looper#109 hit the same timeout. tacplus-dev/build has no runner for its jobs: looper#113 records the symptom, and cluster#18 is the cause. It is the hub's build runner setup, still waiting on Jody's GitLab/GCP steps.
+- **The change:** I committed the previous run's work again as 98fabfd on current main (fe44a0a). `go.mod` declares `go 1.27.4`, `build.lock` pins tacplus build 2.6.8 by digest (it has go1.27.4), and README and STATE.md match. It was queued with the manager at 18:11Z on the full gates.
+- **Checked locally:** `govulncheck ./...` and `govulncheck -mode binary` on a built binary both print `No vulnerabilities found.` `gofmt` and `go vet` pass, and `looper-trace check` passes with no handlers changed. The govulncheck already installed on this machine can't load a go 1.27 module (looper#109), so I built v1.9.0 with go1.27.4 to run the scans.
+- **Not run:** `just gates` in the pinned image, since there is no runner.
+- **Release:** no patch is cut from main, because it has a feature since v0.2.0 (#10). The backport, pull request #19 against `release/0.2`, is open, mergeable and green in CI. Tag `v0.2.3` at its merge commit once it merges.
+
+I posted this status on #17 and wrote `Blocked-by: tacplus-dev/cluster#18` to the run's outcome file, which ends this run. The land stays queued with the manager, so it merges once a runner exists and the gates pass. After that, the next run tags v0.2.3 when #19 merges, posts the final comment and closes #17.
