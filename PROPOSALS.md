@@ -11,7 +11,10 @@ the looper then marks it `promoted` or `declined` here with the date.
   of the image, so the gate would want both modes (source on `make check`, binary on `make image`). #17
   (2026-11-11) is a third: GO-2026-6859 in go1.27.3's net/http, again found by the nightly scan. The installed
   govulncheck there was built with go1.26 and could not load the go1.27 packages, so the gate should build its
-  govulncheck with the floor toolchain.
+  govulncheck with the floor toolchain. The version matters too (nightly scan, 2026-11-12): govulncheck v1.1.4
+  built with go1.27.3 loads the packages but panics in its x/tools v0.29.0 (`unexpected expr: *ast.KeyValueExpr`);
+  v1.9.0 built with go1.27.3 runs and reports GO-2026-6859 (#17). The build pipeline's own govulncheck has the
+  same problem (tacplus-dev/looper#109).
 - **TestPutBack flake** (2026-11-02, #9): once in five runs under load, `TestPutBack` failed at
   `controller_test.go:391: tac-eps-abcdefgh is being deleted` (the namespace deleted by hand, with its finalizers
   cleared by `removeNamespace`, still had a deletion timestamp 30s later); the four reruns passed. Worth finding
