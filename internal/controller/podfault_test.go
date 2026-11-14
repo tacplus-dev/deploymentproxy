@@ -283,8 +283,12 @@ func TestPodFaultSpecImmutable(t *testing.T) {
 	deploymentNamespace(t, "tac-im", "im")
 	pf := newPodFault("tac-im", "kill", deploymentproxyv1.PodKill, deploymentproxyv1.PodTarget{Pod: "nobody"}, "10s")
 	create(t, pf)
+	// The controller writes the PodFault (its finalizer, its refusal) after pf was read: the change is a merge patch,
+	// which carries no resourceVersion, so only the immutability rule can refuse it, not a Conflict.
+	waitCondition(t, pf, AppliedCondition, metav1.ConditionFalse, ReasonTargetNotFound)
+	patch := client.MergeFrom(pf.DeepCopy())
 	pf.Spec.Target.Pod = "somebody"
-	if err := admin.Update(ctx, pf); !apierrors.IsInvalid(err) {
+	if err := admin.Patch(ctx, pf, patch); !apierrors.IsInvalid(err) {
 		t.Fatalf("changing the spec: got %v, want Invalid", err)
 	}
 	if err := admin.Create(ctx, newPodFault("tac-im", "bad", "Freeze", deploymentproxyv1.PodTarget{Pod: "nobody"}, "10s")); !apierrors.IsInvalid(err) {
