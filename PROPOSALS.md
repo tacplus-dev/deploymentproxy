@@ -15,11 +15,6 @@ the looper then marks it `promoted` or `declined` here with the date.
   built with go1.27.3 loads the packages but panics in its x/tools v0.29.0 (`unexpected expr: *ast.KeyValueExpr`);
   v1.9.0 built with go1.27.3 runs and reports GO-2026-6859 (#17). The build pipeline's own govulncheck has the
   same problem (tacplus-dev/looper#109).
-- **TestPutBack flake** (2026-11-02, #9): once in five runs under load, `TestPutBack` failed at
-  `controller_test.go:391: tac-eps-abcdefgh is being deleted` (the namespace deleted by hand, with its finalizers
-  cleared by `removeNamespace`, still had a deletion timestamp 30s later); the four reruns passed. Worth finding
-  what holds the namespace (a finalizer the test does not clear, or deploymentproxy's update racing the
-  finalize) before it fails a land.
 - **PodFault: a cap on live faults per deployment** (2026-11-02, #10): a deployment's chaos controller can create
   any number of PodFaults at once, and each may fail or kill one pod; only one `Failure` per pod is enforced. The
   chaos survey wants one fault at a time per fleet (tacplus-dev/chaos#1, `Forbid`), which the chaos controller does
