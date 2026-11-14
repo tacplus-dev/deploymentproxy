@@ -2,10 +2,11 @@ package controller
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"maps"
-	"math/rand/v2"
+	"math/big"
 	"slices"
 	"sort"
 	"strings"
@@ -393,12 +394,22 @@ func (r *PodFaultReconciler) choosePod(ctx context.Context, cfg *config.Config, 
 	}
 	switch {
 	case len(eligible) > 0:
-		return eligible[rand.IntN(len(eligible))], nil
+		return eligible[randomIndex(len(eligible))], nil
 	case first != nil:
 		return nil, first
 	default:
 		return nil, &refusal{ReasonTargetNotFound, "no pod in " + namespace + " matches target.selector"}
 	}
+}
+
+// randomIndex returns an index in [0, n), n > 0, from crypto/rand. Which pod a fault picks is no secret, but
+// math/rand fails the security scan (gosec G404, #20), and one draw per PodFault costs nothing.
+func randomIndex(n int) int {
+	i, err := rand.Int(rand.Reader, big.NewInt(int64(n)))
+	if err != nil {
+		panic(err) // crypto/rand.Reader never fails (Go 1.24+)
+	}
+	return int(i.Int64())
 }
 
 // checkPod refuses a pod that is going, excluded, holds secret material, or is held by another fault.

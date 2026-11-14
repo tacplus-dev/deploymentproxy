@@ -476,3 +476,22 @@ func TestPodFaultForgedStatus(t *testing.T) {
 	waitCondition(t, pf, AppliedCondition, metav1.ConditionFalse, ReasonExcludedNamespace)
 	podUntouched(t, "kube-system", "fs-victim")
 }
+
+// TestRandomIndex checks the index choosePod picks an eligible pod by stays in range and reaches every pod.
+func TestRandomIndex(t *testing.T) {
+	const n = 3
+	seen := map[int]bool{}
+	for range 300 {
+		i := randomIndex(n)
+		if i < 0 || i >= n {
+			t.Fatalf("randomIndex(%d) = %d, out of range", n, i)
+		}
+		seen[i] = true
+	}
+	if len(seen) != n {
+		t.Errorf("randomIndex(%d) reached %v in 300 draws, not every index", n, seen)
+	}
+	if i := randomIndex(1); i != 0 {
+		t.Errorf("randomIndex(1) = %d, want 0", i)
+	}
+}
