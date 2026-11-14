@@ -2,10 +2,11 @@ package controller
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"maps"
-	"math/rand/v2"
+	"math/big"
 	"slices"
 	"sort"
 	"strings"
@@ -393,7 +394,12 @@ func (r *PodFaultReconciler) choosePod(ctx context.Context, cfg *config.Config, 
 	}
 	switch {
 	case len(eligible) > 0:
-		return eligible[rand.IntN(len(eligible))], nil
+		// crypto/rand, not math/rand: the security checks fail a weak generator (gosec G404, #13).
+		i, err := rand.Int(rand.Reader, big.NewInt(int64(len(eligible))))
+		if err != nil {
+			return nil, err
+		}
+		return eligible[i.Int64()], nil
 	case first != nil:
 		return nil, first
 	default:

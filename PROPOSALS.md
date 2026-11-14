@@ -42,5 +42,11 @@ the looper then marks it `promoted` or `declined` here with the date.
 - **Stop removing the retired NetworkPolicies** (2026-11-08, #14): every reconcile issues two DELETEs (answered
   NotFound once they are gone) for `deploymentproxy-default-deny` and `deploymentproxy-allow`. Once every cluster
   has run a version with #14, a later minor can drop `retiredObjects` and the `delete` grant on networkpolicies.
+- **The security run's MEDIUM findings** (2026-11-08, #13): the first `looper-scan` of the pinned build reports,
+  below the policy's HIGH/CRITICAL bar, nine actions used by a mutable tag in `.github/workflows/ci.yml` and
+  `release.yml` (semgrep `github-actions-mutable-action-tag`: `actions/checkout@v4`, `setup-go@v5`, the
+  `docker/*` actions), and gosec G304 on `config.Load`'s `os.ReadFile(path)` (the path is the operator's
+  `--config` flag, so not a traversal). Pinning the actions by commit SHA closes the first; the second wants a
+  `security-exceptions.yaml` entry if it is ever raised to the policy.
 
 ## Promoted / declined
