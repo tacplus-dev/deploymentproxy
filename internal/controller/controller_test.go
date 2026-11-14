@@ -90,7 +90,10 @@ func removeNamespace(t *testing.T, name string) {
 	if _, err := cs.CoreV1().Namespaces().Finalize(ctx, ns, metav1.UpdateOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	if err := cs.CoreV1().Namespaces().Delete(ctx, name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+	// Only this namespace: the controller may have recreated it already, and the new one must stay. A precondition
+	// that no longer holds is a Conflict.
+	err = cs.CoreV1().Namespaces().Delete(ctx, name, metav1.DeleteOptions{Preconditions: metav1.NewUIDPreconditions(string(ns.UID))})
+	if err != nil && !apierrors.IsNotFound(err) && !apierrors.IsConflict(err) {
 		t.Fatal(err)
 	}
 }
