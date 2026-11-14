@@ -11,3 +11,4 @@ Append-only: add entries at the end, never edit or remove one (CI enforces it). 
 - 2026-11-02 looper release v0.2.0 (https://github.com/tacplus-dev/deploymentproxy/releases/tag/v0.2.0)
 - 2026-11-03 looper issue Pods can't schedule on Axion (arm64) nodes: no arm64 nodeSelector or toleration for GKE's kubernetes.io/arch taint (#11, 30da9ef)
 - 2026-11-09 looper issue Remove NetworkPolicy-based isolation from tenant namespaces: bearer tokens isolate, not reachability (#14)
+- 2026-11-14 looper issue Security run fails the policy: gosec G404 (HIGH) on PodFault's math/rand pod pick, internal/controller/podfault.go:396 (#20, ac89260)
