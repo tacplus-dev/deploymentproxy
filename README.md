@@ -73,6 +73,11 @@ A test (`manifests_test.go`) holds every pod template under `config/` to it.
 ([envtest](https://book.kubebuilder.io/reference/envtest), fetched by `setup-envtest`) with the CRD, and run the
 controller as deploymentproxy's service account under the RBAC manifests above. `make image` builds the container image.
 
+The build is pinned: `build.lock` names the build image by digest (tacplus build 2.6.1), and the build pipeline
+([tacplus-dev/looper#71](https://github.com/tacplus-dev/looper/issues/71)) runs `just gates` (`make check`) in it,
+without Docker, with its security checks. To move the pin, change the digest in `build.lock` to the new image's
+(`docker buildx imagetools inspect <image>:<tag>` prints it): a change like any other, landed on the full gates.
+
 ## Releasing
 
 deploymentproxy is released by version, and fleets pin a release line, `MAJOR.MINOR`, which is always that line's
