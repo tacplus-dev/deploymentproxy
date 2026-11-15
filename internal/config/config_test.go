@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -105,9 +104,5 @@ func TestShippedConfigMap(t *testing.T) {
 	}
 	if !c.ValidTid("00000002") {
 		t.Error("restore's tid 00000002 is not reserved")
-	}
-	// Restore is reached by every tenant of its deployment; people only by the deployment namespace.
-	if fmt.Sprint(c.SharedTids) != "[00000002]" {
-		t.Errorf("sharedTids = %v, want [00000002]", c.SharedTids)
 	}
 }

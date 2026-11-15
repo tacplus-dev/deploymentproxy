@@ -35,7 +35,7 @@ import (
 
 const testConfig = `
 reservedTids: ["00000001", "00000002"]
-sharedTids: ["00000002"]
+sharedTids: ["00000002"] # no effect since #14; still accepted
 quota:
   default:
     pods: "10"

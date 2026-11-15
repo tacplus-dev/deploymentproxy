@@ -13,9 +13,10 @@ rules:
   - apiGroups: [rbac.authorization.k8s.io]
     resources: [rolebindings]
     verbs: [get, list, watch, create, update, patch, delete]
+  # Only to remove the NetworkPolicies earlier versions kept in tenant namespaces (#14); it creates none.
   - apiGroups: [networking.k8s.io]
     resources: [networkpolicies]
-    verbs: [get, list, watch, create, update, patch, delete]
+    verbs: [delete]
   - apiGroups: [""]
     resources: [resourcequotas]
     verbs: [get, list, watch, create, update, patch, delete]
