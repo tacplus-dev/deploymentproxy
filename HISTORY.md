@@ -14,3 +14,4 @@ Append-only: add entries at the end, never edit or remove one (CI enforces it). 
 - 2026-11-14 looper issue Security run fails the policy: gosec G404 (HIGH) on PodFault's math/rand pod pick, internal/controller/podfault.go:396 (#20, ac89260)
 - 2026-11-14 looper issue Gates flake: TestPodFaultSpecImmutable gets Conflict, not Invalid, when the controller writes the PodFault first (#18, 8c85af2)
 - 2026-11-15 looper issue Go floor go1.27.3: GO-2026-6859 (net/http MaxBytesReader race) is reachable; declare go 1.27.4 (#17)
+- 2026-11-15 looper issue Pin the build: a committed build.lock naming this repository's build image by digest (#13, 3bac8ad)
