@@ -9,6 +9,7 @@ Latest release v0.1.2 (2026-10-27), line 0.1.
 ## Next
 - The rename to deploymentproxy: module, API group `deploymentproxy.tacplus.dev`, labels, image, docs; v0.2.0 (#9). Agent, at Jody's request, 2026-11-02 (`tacplus-dev/roadmap:decisions/deploymentproxy-2026-11-02.md`).
 - Chaos faults as custom resources: pod faults in the controller, node faults in a separate privileged node agent reachable only through the controller; requesting deployment only (#10). Agent, at Jody's request, 2026-11-02.
+- `ProductNamespace`: create `tac-<deployment>-<name>` for a product, no NetworkPolicy (#22; for operator#33, after tacplus#475). Agent, at Jody's request, 2026-11-15 (product layer approved).
 
 ## Later
 - Nothing recorded yet.
