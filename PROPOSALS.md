@@ -37,12 +37,18 @@ the looper then marks it `promoted` or `declined` here with the date.
 - **Stop removing the retired NetworkPolicies** (2026-11-08, #14): every reconcile issues two DELETEs (answered
   NotFound once they are gone) for `deploymentproxy-default-deny` and `deploymentproxy-allow`. Once every cluster
   has run a version with #14, a later minor can drop `retiredObjects` and the `delete` grant on networkpolicies.
+  The grant now fails the security run (trivy KSV-0056, HIGH; #24, 2026-11-17), which makes this more urgent.
 - **The security run's MEDIUM findings** (2026-11-08, #13): the build pipeline's `looper-scan` of main reports,
   below the policy's HIGH/CRITICAL bar, nine actions used by a mutable tag in `.github/workflows/ci.yml` and
   `release.yml` (semgrep `github-actions-mutable-action-tag`: `actions/checkout@v4`, `setup-go@v5`, the
   `docker/*` actions), and gosec G304 on `config.Load`'s `os.ReadFile(path)` (the path is the operator's
   `--config` flag, so not a traversal). Pinning the actions by commit SHA closes the first; the second wants a
-  `security-exceptions.yaml` entry if it is ever raised to the policy.
+  `security-exceptions.yaml` entry if it is ever raised to the policy. The nightly scan of 2026-11-17 (trivy now
+  reads the manifests) adds, below the bar: KSV-0048 (MEDIUM, the ClusterRole's pod `patch`/`delete`, which
+  PodFault needs), KSV-0125 (MEDIUM, `config/manager/deployment.yaml`'s image not from a trusted-registry list),
+  KSV-0011 (LOW, no CPU limit), KSV-0020/KSV-0021 (LOW, UID/GID 65532 is not above 10000; this is distroless's
+  `nonroot`), DS-0026 (LOW, no `HEALTHCHECK`, which Kubernetes ignores in favour of its probes). A CPU limit is
+  the one change with an effect. The others want exceptions with reasons if they are ever raised to the policy.
 - **`go mod tidy` in the gates** (2026-11-14, #20): `go mod tidy -diff` on main wants `k8s.io/utils` moved from
   the indirect requires to the direct ones (the code imports it), and nothing checks it. A `tidy -diff` step in
   `make check` would keep go.mod honest; the fix itself is one `go mod tidy`.
