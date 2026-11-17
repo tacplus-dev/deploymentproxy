@@ -2,7 +2,6 @@ package controller
 
 import (
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -35,14 +34,5 @@ func desiredObjects(owner types.NamespacedName, child, deployment, parent string
 			ObjectMeta: om(QuotaName),
 			Spec:       corev1.ResourceQuotaSpec{Hard: cfg.QuotaFor(deployment)},
 		},
-	}
-}
-
-// retiredObjects are the objects earlier versions of deploymentproxy kept in tenant namespace child, removed on
-// reconcile: the baseline NetworkPolicies.
-func retiredObjects(child string) []client.Object {
-	return []client.Object{
-		&networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: child, Name: DenyPolicyName}},
-		&networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: child, Name: AllowPolicyName}},
 	}
 }
