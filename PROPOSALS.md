@@ -48,5 +48,11 @@ the looper then marks it `promoted` or `declined` here with the date.
 - **`go mod tidy` in the gates** (2026-11-14, #20): `go mod tidy -diff` on main wants `k8s.io/utils` moved from
   the indirect requires to the direct ones (the code imports it), and nothing checks it. A `tidy -diff` step in
   `make check` would keep go.mod honest; the fix itself is one `go mod tidy`.
+- **The image built before a release** (2026-11-17, #23): nothing builds the `Dockerfile` until a tag's release
+  run. The gates (`make check`) run without Docker, `ci.yml` does not build the image, and loopers cannot
+  dispatch release.yml's dry run (`workflow_dispatch` answers 403 to their token). So #23's change of build stage
+  (`golang:1.27-alpine`) was first built for linux/amd64 and linux/arm64 by a member's dry run or by the next
+  tag. A `docker buildx build --platform linux/amd64,linux/arm64` job in `ci.yml` (no push), on pushes that touch
+  the `Dockerfile`, `go.mod` or `go.sum`, would catch a broken image at the pull request instead of at release.
 
 ## Promoted / declined
