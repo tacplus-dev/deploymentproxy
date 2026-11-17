@@ -47,10 +47,6 @@ const (
 
 	RoleBindingName = "deploymentproxy-operator-admin"
 	QuotaName       = "deploymentproxy-quota"
-	// DenyPolicyName and AllowPolicyName are the NetworkPolicies earlier versions kept in a tenant namespace;
-	// deploymentproxy now removes them (retiredObjects).
-	DenyPolicyName  = "deploymentproxy-default-deny"
-	AllowPolicyName = "deploymentproxy-allow"
 
 	// OperatorServiceAccount is the service account, in the deployment namespace, made admin of each of
 	// its tenant namespaces.
@@ -237,11 +233,6 @@ func (r *Reconciler) ensure(ctx context.Context, tn *deploymentproxyv1.TenantNam
 	}
 	for _, obj := range desiredObjects(owner, name, deployment, parent.Name, cfg) {
 		if err := r.ensureObject(ctx, obj); err != nil {
-			return "", err
-		}
-	}
-	for _, obj := range retiredObjects(name) {
-		if err := r.Client.Delete(ctx, obj); err != nil && !apierrors.IsNotFound(err) {
 			return "", err
 		}
 	}

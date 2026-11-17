@@ -46,10 +46,11 @@ refused, `Ready=False` and the reason says why (`NotDeploymentNamespace`, `InTen
   authorizers), not reachability: a cross-deployment or cross-tenant call is refused by the callee, whatever
   the network lets through
   ([decision](https://github.com/tacplus-dev/roadmap/blob/main/decisions/s2s-never-crosses-tenants-2026-10-31.md),
-  addendum 2026-11-07 (2)). deploymentproxy keeps none in a tenant namespace, and removes on reconcile the
-  baseline ones earlier versions kept (`deploymentproxy-default-deny`, `deploymentproxy-allow`); the
-  operator's own are left alone. The ConfigMap's `sharedTids`, which shaped them, has no effect and is still
-  accepted.
+  addendum 2026-11-07 (2)). deploymentproxy keeps none in a tenant namespace, and has no right on
+  NetworkPolicies at all (#24). v0.2.2 removed on reconcile the baseline ones versions before it kept
+  (`deploymentproxy-default-deny`, `deploymentproxy-allow`); later versions leave them, so a cluster upgrading
+  from v0.2.1 or earlier straight past v0.2.2 deletes those two by hand. The ConfigMap's `sharedTids`, which
+  shaped them, has no effect and is still accepted.
 - **Only what it owns:** deploymentproxy changes or deletes a namespace only if it carries its owner label for
   the same deployment; an existing namespace of the same name without it is refused, never adopted. It never
   touches a deployment namespace. Deleting a deployment namespace deletes all its tenant namespaces.

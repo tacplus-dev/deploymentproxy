@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	networkingv1 "k8s.io/api/networking/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -41,36 +43,48 @@ func policy(namespace, name string, labels, annotations map[string]string) *netw
 	}
 }
 
-func TestEarlierPoliciesRemoved(t *testing.T) {
+// TestNetworkPoliciesLeftAlone proves deploymentproxy no longer removes the baseline NetworkPolicies versions
+// before v0.2.2 kept (#24: v0.2.2 and later removed them on reconcile, #14), nor any other: a NetworkPolicy in a
+// tenant namespace is not its to touch, and its ClusterRole grants nothing on networkpolicies.
+func TestNetworkPoliciesLeftAlone(t *testing.T) {
 	ctx := context.Background()
 	deploymentNamespace(t, "tac-mu", "mu")
 	readyTenants(t, "tac-mu", "00000002", "aaaaaaaa")
 
-	// The baseline policies an earlier deploymentproxy kept (one stripped of its labels by hand), and one of the
-	// operator's own.
+	names := []string{"deploymentproxy-default-deny", "deploymentproxy-allow", "operator-own"}
 	for _, child := range []string{"tac-mu-00000002", "tac-mu-aaaaaaaa"} {
-		ours := map[string]string{OwnerLabel: "mu"}
-		owner := map[string]string{OwnerAnnotation: "tac-mu/t-" + child[len(child)-8:]}
-		create(t, policy(child, DenyPolicyName, ours, owner))
-		create(t, policy(child, AllowPolicyName, nil, nil))
-		create(t, policy(child, "operator-own", nil, nil))
+		for _, name := range names {
+			create(t, policy(child, name, map[string]string{OwnerLabel: "mu"}, nil))
+		}
+		// A reconcile of the tenant namespace, which puts the RoleBinding back.
+		if err := admin.Delete(ctx, &rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Namespace: child, Name: RoleBindingName}}); err != nil {
+			t.Fatal(err)
+		}
+		eventually(t, func() error { return checkDefaults(child, "tac-mu", "mu", "10") })
 	}
 
-	for _, child := range []string{"tac-mu-00000002", "tac-mu-aaaaaaaa"} {
-		eventually(t, func() error {
+	consistently(t, func() error {
+		for _, child := range []string{"tac-mu-00000002", "tac-mu-aaaaaaaa"} {
 			var policies networkingv1.NetworkPolicyList
 			if err := admin.List(ctx, &policies, client.InNamespace(child)); err != nil {
 				return err
 			}
-			if len(policies.Items) != 1 || policies.Items[0].Name != "operator-own" {
-				names := []string{}
-				for _, p := range policies.Items {
-					names = append(names, p.Name)
-				}
-				return fmt.Errorf("%s: policies %v, want only operator-own", child, names)
+			if len(policies.Items) != len(names) {
+				return fmt.Errorf("%s: %d policies, want %v", child, len(policies.Items), names)
 			}
-			return nil
-		})
+		}
+		return nil
+	})
+
+	dp, err := client.New(impersonate(adminCfg, "deploymentproxy", "deploymentproxy"), client.Options{Scheme: scheme})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range names {
+		obj := &networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: "tac-mu-00000002", Name: name}}
+		if err := dp.Delete(ctx, obj); !apierrors.IsForbidden(err) {
+			t.Errorf("deploymentproxy deleting NetworkPolicy %s: got %v, want Forbidden", name, err)
+		}
 	}
 }
 
