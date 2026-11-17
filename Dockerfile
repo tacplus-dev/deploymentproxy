@@ -1,5 +1,5 @@
 # Built on the build host's platform and cross-compiled, so a multi-architecture build needs no emulation.
-FROM --platform=$BUILDPLATFORM golang:1.27 AS build
+FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS build
 ARG TARGETOS TARGETARCH
 WORKDIR /src
 COPY go.mod go.sum ./
