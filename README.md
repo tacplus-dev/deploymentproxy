@@ -171,6 +171,13 @@ The build is pinned: `build.lock` names the build image by digest (tacplus build
 ([tacplus-dev/looper#71](https://github.com/tacplus-dev/looper/issues/71)) runs `just gates` (`make check`) in it,
 without Docker, with its security checks. To move the pin, change the digest in `build.lock` to the new image's
 (`docker buildx imagetools inspect <image>:<tag>` prints it): a change like any other, landed on the full gates.
+The `Dockerfile`'s build stage is pinned the same way (`golang:1.27-alpine@sha256:...`, #27): a fixed Alpine
+package reaches it when the digest moves to a rebuilt image.
+
+The security checks read two files at the root ([tacplus-dev/looper](https://github.com/tacplus-dev/looper), README:
+Security checks): `security-exceptions.yaml`, the findings accepted with a reason, who decided and an expiry (DS-0026,
+no `HEALTHCHECK`, #27), and `security-baseline.json` (`looper-scan baseline` writes it), the findings below the bar
+recorded as standing, so the nightly run reports them as new no more (#13's and #27's; PROPOSALS.md lists them).
 
 ## Releasing
 

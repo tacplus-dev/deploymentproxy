@@ -45,6 +45,11 @@ the looper then marks it `promoted` or `declined` here with the date.
   KSV-0011 (LOW, no CPU limit), KSV-0020/KSV-0021 (LOW, UID/GID 65532 is not above 10000; this is distroless's
   `nonroot`), DS-0026 (LOW, no `HEALTHCHECK`, which Kubernetes ignores in favour of its probes). A CPU limit is
   the one change with an effect. The others want exceptions with reasons if they are ever raised to the policy.
+  Since #27 (hub, 2026-11-18), DS-0026 is excepted rule-wide (`security-exceptions.yaml`), and the rest, with the
+  build stage's zlib CVE-2026-4738 (fixed in Alpine's zlib 1.4-r0, not yet in a `golang:1.27-alpine` image), are
+  recorded in `security-baseline.json`: none is reported as new. The build stage is pinned by digest; moving the
+  digest to an image rebuilt on zlib 1.4-r0 clears the CVE (and its baseline entry, which names the digest). The
+  CPU limit (KSV-0011) was not decided on #27 and is still open.
 - **`go mod tidy` in the gates** (2026-11-14, #20): `go mod tidy -diff` on main wants `k8s.io/utils` moved from
   the indirect requires to the direct ones (the code imports it), and nothing checks it. A `tidy -diff` step in
   `make check` would keep go.mod honest; the fix itself is one `go mod tidy`.
