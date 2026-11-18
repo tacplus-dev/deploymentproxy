@@ -1,5 +1,7 @@
-# Built on the build host's platform and cross-compiled, so a multi-architecture build needs no emulation.
-FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS build
+# Built on the build host's platform and cross-compiled, so a multi-architecture build needs no emulation. The base is
+# pinned by digest (#27; golang:1.27-alpine, go1.27.4 on Alpine 3.24, of 2026-11-10): a fixed Alpine package arrives
+# when the digest moves to a rebuilt image (`docker buildx imagetools inspect golang:1.27-alpine` prints it).
+FROM --platform=$BUILDPLATFORM golang:1.27-alpine@sha256:70bd7ddea8b6cbe5d6943cde279d6b67feb10cc924fb9100d1d8757c1575b280 AS build
 ARG TARGETOS TARGETARCH
 WORKDIR /src
 COPY go.mod go.sum ./

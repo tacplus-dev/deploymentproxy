@@ -72,6 +72,13 @@ A test (`manifests_test.go`) holds every pod template under `config/` to it.
 `make check` runs the gates: gofmt, `go vet`, build, and the tests. The controller tests run a real API server
 ([envtest](https://book.kubebuilder.io/reference/envtest), fetched by `setup-envtest`) with the CRD, and run the
 controller as deploymentproxy's service account under the RBAC manifests above. `make image` builds the container image.
+The `Dockerfile`'s build stage is pinned by digest (`golang:1.27-alpine@sha256:...`, #27): a fixed Alpine package
+reaches it when the digest moves to a rebuilt image (`docker buildx imagetools inspect <image>:<tag>` prints it).
+
+The security checks read two files at the root ([tacplus-dev/looper](https://github.com/tacplus-dev/looper), README:
+Security checks): `security-exceptions.yaml`, the findings accepted with a reason, who decided and an expiry (DS-0026,
+no `HEALTHCHECK`, #27), and `security-baseline.json` (`looper-scan baseline` writes it), the findings below the bar
+recorded as standing, so the nightly run reports them as new no more (#27's).
 
 ## Releasing
 
