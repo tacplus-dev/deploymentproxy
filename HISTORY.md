@@ -16,3 +16,4 @@ Append-only: add entries at the end, never edit or remove one (CI enforces it). 
 - 2026-11-15 looper issue Go floor go1.27.3: GO-2026-6859 (net/http MaxBytesReader race) is reachable; declare go 1.27.4 (#17)
 - 2026-11-15 looper issue Pin the build: a committed build.lock naming this repository's build image by digest (#13, 3bac8ad)
 - 2026-11-17 looper issue ClusterRole's cluster-wide delete on networkpolicies (kept only for #14's retired policies) fails the security run: trivy KSV-0056 (HIGH) (#24)
+- 2026-11-17 looper issue Dockerfile build stage golang:1.27 (Debian 13.7) fails the security run: 182 HIGH/CRITICAL package advisories (7 failing the policy); build on golang:1.27-alpine (#23)
