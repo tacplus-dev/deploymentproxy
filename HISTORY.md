@@ -17,3 +17,4 @@ Append-only: add entries at the end, never edit or remove one (CI enforces it). 
 - 2026-11-15 looper issue Pin the build: a committed build.lock naming this repository's build image by digest (#13, 3bac8ad)
 - 2026-11-17 looper issue ClusterRole's cluster-wide delete on networkpolicies (kept only for #14's retired policies) fails the security run: trivy KSV-0056 (HIGH) (#24)
 - 2026-11-17 looper issue Dockerfile build stage golang:1.27 (Debian 13.7) fails the security run: 182 HIGH/CRITICAL package advisories (7 failing the policy); build on golang:1.27-alpine (#23)
+- 2026-11-18 looper issue Security run, below the bar: zlib CVE-2026-4738 in the build stage, and six trivy manifest/Dockerfile checks (KSV-0048, KSV-0125, KSV-0011, KSV-0020, KSV-0021, DS-0026) with no exception (#27)
