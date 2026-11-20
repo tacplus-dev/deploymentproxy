@@ -36,3 +36,36 @@ func TestDockerfileStages(t *testing.T) {
 		t.Errorf("runtime stage is %q, want %q", froms[1], want)
 	}
 }
+
+// TestDockerfileBuildStageOpenSSL proves the build stage runs on a fixed OpenSSL while the pinned base still ships
+// 3.5.9-r0 (#29): it upgrades libssl3 and libcrypto3 right after its FROM, before anything else runs. It also proves
+// the runtime stage carries none of the build stage's packages: the binary is the one thing it copies from it.
+func TestDockerfileBuildStageOpenSSL(t *testing.T) {
+	b, err := os.ReadFile("Dockerfile")
+	if err != nil {
+		t.Fatal(err)
+	}
+	stage := -1
+	var build, copies []string
+	for _, line := range strings.Split(string(b), "\n") {
+		if strings.HasPrefix(line, "#") || strings.TrimSpace(line) == "" {
+			continue
+		}
+		if strings.HasPrefix(line, "FROM ") {
+			stage++
+			continue
+		}
+		if stage == 0 {
+			build = append(build, line)
+		}
+		if strings.Contains(line, "--from=") {
+			copies = append(copies, line)
+		}
+	}
+	if want := "RUN apk upgrade --no-cache libssl3 libcrypto3"; len(build) == 0 || build[0] != want {
+		t.Errorf("build stage's instructions are %q, want %q first", build, want)
+	}
+	if want := "COPY --from=build /deploymentproxy /deploymentproxy"; len(copies) != 1 || copies[0] != want {
+		t.Errorf("the runtime stage copies %q from the build stage, want only %q", copies, want)
+	}
+}

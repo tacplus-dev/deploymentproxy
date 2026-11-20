@@ -2,6 +2,9 @@
 # pinned by digest (#27; golang:1.27-alpine, go1.27.4 on Alpine 3.24, of 2026-11-10): a fixed Alpine package arrives
 # when the digest moves to a rebuilt image (`docker buildx imagetools inspect golang:1.27-alpine` prints it).
 FROM --platform=$BUILDPLATFORM golang:1.27-alpine@sha256:70bd7ddea8b6cbe5d6943cde279d6b67feb10cc924fb9100d1d8757c1575b280 AS build
+# This digest ships OpenSSL 3.5.9-r0; Alpine's 3.5.9-r1 fixes five CVEs (#29), and no rebuilt image has it yet. The
+# security run scans the FROM image by name, so it lists them until the digest moves; this stage builds on the fix.
+RUN apk upgrade --no-cache libssl3 libcrypto3
 ARG TARGETOS TARGETARCH
 WORKDIR /src
 COPY go.mod go.sum ./

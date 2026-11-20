@@ -172,7 +172,10 @@ The build is pinned: `build.lock` names the build image by digest (tacplus build
 without Docker, with its security checks. To move the pin, change the digest in `build.lock` to the new image's
 (`docker buildx imagetools inspect <image>:<tag>` prints it): a change like any other, landed on the full gates.
 The `Dockerfile`'s build stage is pinned the same way (`golang:1.27-alpine@sha256:...`, #27): a fixed Alpine
-package reaches it when the digest moves to a rebuilt image.
+package reaches it when the digest moves to a rebuilt image. Until one has OpenSSL 3.5.9-r1, the build stage
+upgrades `libssl3` and `libcrypto3` itself (#29); the security run scans the `FROM` image by name, so it still lists
+their five CVEs (MEDIUM, against the digest) until the digest moves. Neither ships: the runtime stage is distroless
+static and takes only the `CGO_ENABLED=0` binary from the build stage.
 
 The security checks read two files at the root ([tacplus-dev/looper](https://github.com/tacplus-dev/looper), README:
 Security checks): `security-exceptions.yaml`, the findings accepted with a reason, who decided and an expiry (DS-0026,

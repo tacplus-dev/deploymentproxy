@@ -50,6 +50,15 @@ the looper then marks it `promoted` or `declined` here with the date.
   recorded in `security-baseline.json`: none is reported as new. The build stage is pinned by digest; moving the
   digest to an image rebuilt on zlib 1.4-r0 clears the CVE (and its baseline entry, which names the digest). The
   CPU limit (KSV-0011) was not decided on #27 and is still open.
+- **Move the build stage to a `golang:1.27-alpine` rebuilt on OpenSSL 3.5.9-r1** (2026-11-20, #29): the pinned
+  digest (`sha256:70bd7dde…`) ships libssl3/libcrypto3 3.5.9-r0, with five MEDIUM CVEs (CVE-2026-107496,
+  CVE-2026-88822, CVE-2026-88823, CVE-2026-95691, CVE-2026-95692) fixed in 3.5.9-r1. The hub decided on #29: a
+  fix, not an exception, so the build stage runs `apk upgrade --no-cache libssl3 libcrypto3`, and the ten findings
+  are not baselined. The security run scans the `FROM` image by name, so it keeps listing them (not as new after
+  their first run) until the digest moves; neither package ships (distroless static, a `CGO_ENABLED=0` binary).
+  Once Docker Hub's `golang:1.27-alpine` is rebuilt on 3.5.9-r1 (on 2026-11-20 it was still this digest), move
+  the digest, drop the `apk upgrade`, and drop zlib's CVE-2026-4738 baseline entry too if the new image has zlib
+  1.4-r0.
 - **`go mod tidy` in the gates** (2026-11-14, #20): `go mod tidy -diff` on main wants `k8s.io/utils` moved from
   the indirect requires to the direct ones (the code imports it), and nothing checks it. A `tidy -diff` step in
   `make check` would keep go.mod honest; the fix itself is one `go mod tidy`.
