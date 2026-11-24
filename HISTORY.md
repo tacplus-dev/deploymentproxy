@@ -20,3 +20,4 @@ Append-only: add entries at the end, never edit or remove one (CI enforces it). 
 - 2026-11-18 looper issue Security run, below the bar: zlib CVE-2026-4738 in the build stage, and six trivy manifest/Dockerfile checks (KSV-0048, KSV-0125, KSV-0011, KSV-0020, KSV-0021, DS-0026) with no exception (#27)
 - 2026-11-22 looper issue Pinned images behind their lines: relock (build.lock: ghcr.io/tacplus-dev/tacplus/build:2.6.8 → ghcr.io/tacplus-dev/tacplus/build:2.6.13) (#30)
 - 2026-11-23 looper issue Pinned images behind their lines: relock (build.lock: ghcr.io/tacplus-dev/tacplus/build:2.6.13 → ghcr.io/tacplus-dev/tacplus/build:2.6.14) (#31)
+- 2026-11-24 looper issue Release image base pinned by digest, not the floating tag (#32)
