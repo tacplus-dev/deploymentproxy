@@ -11,7 +11,9 @@ COPY cmd cmd
 COPY internal internal
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags=-s -o /deploymentproxy ./cmd/deploymentproxy
 
-FROM gcr.io/distroless/static-debian13:nonroot
+# The runtime base is pinned by digest too (#32; the nonroot tag's index of 2026-11-24, linux/amd64 and linux/arm64
+# among its platforms): a rebuild ships the base the security run scanned. Nightly maintenance moves the digest.
+FROM gcr.io/distroless/static-debian13:nonroot@sha256:8ce6dd87e9823c5b48dcfb2c8604714ccb351ce59607327bcc4957448da279b5
 # Set by the release (.github/workflows/release.yml).
 ARG VERSION=dev
 ARG REVISION=unknown

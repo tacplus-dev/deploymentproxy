@@ -74,6 +74,9 @@ A test (`manifests_test.go`) holds every pod template under `config/` to it.
 controller as deploymentproxy's service account under the RBAC manifests above. `make image` builds the container image.
 The `Dockerfile`'s build stage is pinned by digest (`golang:1.27-alpine@sha256:...`, #27): a fixed Alpine package
 reaches it when the digest moves to a rebuilt image (`docker buildx imagetools inspect <image>:<tag>` prints it).
+The runtime stage is pinned by digest as well (`gcr.io/distroless/static-debian13:nonroot@sha256:...`, #32), so a
+rebuild of a commit ships the base the security run scanned; `TestDockerfileFromsPinned` fails on any `FROM`
+without `@sha256:`, and nightly maintenance moves the digests (tacplus-dev/looper#234).
 
 The security checks read two files at the root ([tacplus-dev/looper](https://github.com/tacplus-dev/looper), README:
 Security checks): `security-exceptions.yaml`, the findings accepted with a reason, who decided and an expiry (DS-0026,
