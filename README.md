@@ -175,7 +175,10 @@ The `Dockerfile`'s build stage is pinned the same way (`golang:1.27-alpine@sha25
 package reaches it when the digest moves to a rebuilt image. Until one has OpenSSL 3.5.9-r1, the build stage
 upgrades `libssl3` and `libcrypto3` itself (#29); the security run scans the `FROM` image by name, so it still lists
 their five CVEs (MEDIUM, against the digest) until the digest moves. Neither ships: the runtime stage is distroless
-static and takes only the `CGO_ENABLED=0` binary from the build stage.
+static and takes only the `CGO_ENABLED=0` binary from the build stage. The runtime stage is pinned by digest as well
+(`gcr.io/distroless/static-debian13:nonroot@sha256:...`, #32), so a rebuild of a commit ships the base the security
+run scanned; `TestDockerfileFromsPinned` fails on any `FROM` without `@sha256:`, and nightly maintenance moves the
+digests (tacplus-dev/looper#234).
 
 The security checks read two files at the root ([tacplus-dev/looper](https://github.com/tacplus-dev/looper), README:
 Security checks): `security-exceptions.yaml`, the findings accepted with a reason, who decided and an expiry (DS-0026,
