@@ -1,0 +1,12 @@
+# Findings the build's security checks accept (tacplus-dev/looper README: Security checks).
+#
+# #27: trivy's DS-0026 (no HEALTHCHECK in the Dockerfile), rule-wide, the hub's one rule for every DS-0026 finding.
+# Kubernetes ignores a Docker HEALTHCHECK, the distroless static base has no shell to run one, and deploymentproxy
+# serves no port (README: no Service, no probes). Decided by Jody on #27, 2026-11-18; it expires on 2027-05-17 (a
+# six-month review). The other findings of that run get no exception (same decision): they are below the bar,
+# recorded in security-baseline.json.
+exceptions:
+  - id: DS-0026
+    reason: "#27, the Dockerfile has no HEALTHCHECK by design: Kubernetes ignores it, the distroless static base has no shell to run one, and deploymentproxy serves no port to check"
+    decided_by: "jodydadescott (hub on #27, 2026-11-18)"
+    expires: 2027-05-17
