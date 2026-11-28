@@ -68,5 +68,11 @@ the looper then marks it `promoted` or `declined` here with the date.
   (`golang:1.27-alpine`) was first built for linux/amd64 and linux/arm64 by a member's dry run or by the next
   tag. A `docker buildx build --platform linux/amd64,linux/arm64` job in `ci.yml` (no push), on pushes that touch
   the `Dockerfile`, `go.mod` or `go.sum`, would catch a broken image at the pull request instead of at release.
+- **A typo in a deployment's name in the config grants nothing, silently** (2026-11-28, #39): neither
+  `quota.deployments` nor `readers.deployments` checks its keys, so a misspelt deployment gets the default
+  quota or no reader binding and nothing says so (the fleet's `tenants/pods-ready` would then wait on
+  `kubectl auth can-i` forever). Checking each key against the deployment pattern (`^[a-z][a-z0-9-]{0,15}$`, as
+  the controller does) in `config.Parse` would catch the malformed ones; a startup log line listing the
+  configured deployments with no deployment namespace would catch the rest.
 
 ## Promoted / declined
