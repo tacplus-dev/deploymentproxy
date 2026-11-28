@@ -16,11 +16,12 @@ rules:
   - apiGroups: [""]
     resources: [resourcequotas]
     verbs: [get, list, watch, create, update, patch, delete]
-  # The one ClusterRole it binds, in a tenant namespace, to the deployment's operator.
+  # The only ClusterRoles it binds, in a tenant namespace: admin to the deployment's operator, and
+  # deploymentproxy-tenant-reader (tenant_reader_cluster_role.yaml) to the deployment's configured readers.
   - apiGroups: [rbac.authorization.k8s.io]
     resources: [clusterroles]
     verbs: [bind]
-    resourceNames: [admin]
+    resourceNames: [admin, deploymentproxy-tenant-reader]
   - apiGroups: [deploymentproxy.tacplus.dev]
     resources: [tenantnamespaces]
     verbs: [get, list, watch]

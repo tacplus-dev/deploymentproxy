@@ -291,6 +291,10 @@ func checkDefaults(child, parent, deployment, pods string) error {
 		fmt.Sprint(rb.Subjects) != fmt.Sprint(wantSubjects) {
 		return fmt.Errorf("RoleBinding: roleRef %+v subjects %+v", rb.RoleRef, rb.Subjects)
 	}
+	// No readers configured for any deployment checked here: no reader binding.
+	if err := admin.Get(ctx, types.NamespacedName{Namespace: child, Name: ReaderRoleBindingName}, &rbacv1.RoleBinding{}); !apierrors.IsNotFound(err) {
+		return fmt.Errorf("RoleBinding %s: got %v, want NotFound", ReaderRoleBindingName, err)
+	}
 
 	q := &corev1.ResourceQuota{}
 	if err := admin.Get(ctx, types.NamespacedName{Namespace: child, Name: QuotaName}, q); err != nil {
@@ -468,4 +472,77 @@ func TestOperatorRBAC(t *testing.T) {
 		t.Fatalf("operator deleting: %v", err)
 	}
 	waitDeleting(t, "tac-kappa-abcdefgh")
+}
+
+// readers returns testConfig with readers configured for deployment rho.
+func readers(subjects string) string {
+	return testConfig + "readers:\n  deployments:\n    rho: " + subjects + "\n"
+}
+
+// checkReaders returns nil once child's reader RoleBinding binds deploymentproxy-tenant-reader to want.
+func checkReaders(child string, want []rbacv1.Subject) error {
+	rb := &rbacv1.RoleBinding{}
+	if err := admin.Get(context.Background(), types.NamespacedName{Namespace: child, Name: ReaderRoleBindingName}, rb); err != nil {
+		return err
+	}
+	if rb.RoleRef != (rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "ClusterRole", Name: "deploymentproxy-tenant-reader"}) ||
+		fmt.Sprint(rb.Subjects) != fmt.Sprint(want) || rb.Labels[OwnerLabel] != "rho" {
+		return fmt.Errorf("RoleBinding %s: roleRef %+v subjects %+v labels %v", ReaderRoleBindingName, rb.RoleRef, rb.Subjects, rb.Labels)
+	}
+	return nil
+}
+
+// TestDeployReaders: a deployment's configured readers (its deploy account) may read its tenant namespaces'
+// pods, their logs and events, and nothing else; the binding follows the config, and goes when it is dropped.
+func TestDeployReaders(t *testing.T) {
+	ctx := context.Background()
+	const user = "rho-deploy@example.iam.gserviceaccount.com"
+	setConfig(t, readers("[{kind: User, name: "+user+"}]"))
+	deploymentNamespace(t, "tac-rho", "rho")
+	tn := newTenantNamespace("tac-rho", "t", "abcdefgh")
+	create(t, tn)
+	waitReady(t, tn, metav1.ConditionTrue, ReasonReady)
+	child := "tac-rho-abcdefgh"
+	wantUser := []rbacv1.Subject{{Kind: rbacv1.UserKind, APIGroup: rbacv1.GroupName, Name: user}}
+	eventually(t, func() error { return checkReaders(child, wantUser) })
+
+	deploy, err := client.New(impersonateUser(adminCfg, user), client.Options{Scheme: scheme})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := deploy.List(ctx, &corev1.PodList{}, client.InNamespace(child)); err != nil {
+		t.Errorf("reader listing pods in %s: %v", child, err)
+	}
+	if err := deploy.List(ctx, &corev1.EventList{}, client.InNamespace(child)); err != nil {
+		t.Errorf("reader listing events in %s: %v", child, err)
+	}
+	for what, err := range map[string]error{
+		"listing secrets":             deploy.List(ctx, &corev1.SecretList{}, client.InNamespace(child)),
+		"listing configmaps":          deploy.List(ctx, &corev1.ConfigMapList{}, client.InNamespace(child)),
+		"creating a pod":              deploy.Create(ctx, &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Namespace: child, Name: "p"}, Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "c", Image: "x"}}}}),
+		"listing pods of tac-rho":     deploy.List(ctx, &corev1.PodList{}, client.InNamespace("tac-rho")),
+		"listing pods of kube-system": deploy.List(ctx, &corev1.PodList{}, client.InNamespace("kube-system")),
+	} {
+		if !apierrors.IsForbidden(err) {
+			t.Errorf("reader %s: got %v, want Forbidden", what, err)
+		}
+	}
+
+	// The subjects follow the config.
+	setConfig(t, readers("[{kind: Group, name: rho-oncall@example.com}]"))
+	eventually(t, func() error {
+		return checkReaders(child, []rbacv1.Subject{{Kind: rbacv1.GroupKind, APIGroup: rbacv1.GroupName, Name: "rho-oncall@example.com"}})
+	})
+
+	// Deleted by hand, it is put back.
+	if err := admin.Delete(ctx, &rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Namespace: child, Name: ReaderRoleBindingName}}); err != nil {
+		t.Fatal(err)
+	}
+	eventually(t, func() error {
+		return checkReaders(child, []rbacv1.Subject{{Kind: rbacv1.GroupKind, APIGroup: rbacv1.GroupName, Name: "rho-oncall@example.com"}})
+	})
+
+	// Readers dropped from the config: the binding goes, and the operator's stays.
+	setConfig(t, testConfig)
+	eventually(t, func() error { return checkDefaults(child, "tac-rho", "rho", "10") })
 }

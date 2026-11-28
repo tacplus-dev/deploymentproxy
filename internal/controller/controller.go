@@ -46,13 +46,18 @@ const (
 	OwnerAnnotation = "deploymentproxy.tacplus.dev/owner"
 
 	RoleBindingName = "deploymentproxy-operator-admin"
-	QuotaName       = "deploymentproxy-quota"
+	// ReaderRoleBindingName binds ReaderClusterRole to the deployment's configured readers.
+	ReaderRoleBindingName = "deploymentproxy-deploy-reader"
+	QuotaName             = "deploymentproxy-quota"
 
 	// OperatorServiceAccount is the service account, in the deployment namespace, made admin of each of
 	// its tenant namespaces.
 	OperatorServiceAccount = "operator"
-	// AdminClusterRole is the one ClusterRole deploymentproxy binds.
+	// AdminClusterRole is the ClusterRole deploymentproxy binds to the operator.
 	AdminClusterRole = "admin"
+	// ReaderClusterRole (config/rbac/tenant_reader_cluster_role.yaml) is the read-only ClusterRole
+	// deploymentproxy binds to the deployment's configured readers. It binds no other.
+	ReaderClusterRole = "deploymentproxy-tenant-reader"
 
 	ReadyCondition = "Ready"
 
@@ -236,6 +241,11 @@ func (r *Reconciler) ensure(ctx context.Context, tn *deploymentproxyv1.TenantNam
 			return "", err
 		}
 	}
+	for _, obj := range unwantedObjects(name, deployment, cfg) {
+		if err := r.deleteObject(ctx, obj); err != nil {
+			return "", err
+		}
+	}
 	// A tenant namespace this object had under another name (its parent's deployment label changed).
 	return name, r.deleteChildren(ctx, owner, name)
 }
@@ -325,6 +335,20 @@ func (r *Reconciler) ensureObject(ctx context.Context, want client.Object) error
 		return nil
 	}
 	return r.Client.Update(ctx, got)
+}
+
+// deleteObject deletes obj, if it exists.
+func (r *Reconciler) deleteObject(ctx context.Context, obj client.Object) error {
+	got := obj.DeepCopyObject().(client.Object)
+	if err := r.APIReader.Get(ctx, client.ObjectKeyFromObject(obj), got); err != nil {
+		return client.IgnoreNotFound(err)
+	}
+	uid := got.GetUID()
+	if err := r.Client.Delete(ctx, got, client.Preconditions{UID: &uid}); err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+	log.FromContext(ctx).Info("deleted", "namespace", got.GetNamespace(), "name", got.GetName())
+	return nil
 }
 
 // copyContent copies deploymentproxy's labels, annotation and content from want into got, and reports whether got

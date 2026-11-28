@@ -3,9 +3,11 @@ package config
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/yaml"
 )
@@ -80,6 +82,15 @@ func TestParseRejects(t *testing.T) {
 		`quota: {default: {pods: "lots"}}`,
 		`sharedTids: ["00000002"]`, // shared, not reserved
 		`{reservedTids: ["00000002"], sharedTids: ["abcdefgh"]}`,
+		// A reader is a User or a Group, never a service account (of another namespace or any).
+		`readers: {deployments: {prod: [{kind: ServiceAccount, name: operator, namespace: tac-other}]}}`,
+		`readers: {deployments: {prod: [{kind: ServiceAccount, name: operator}]}}`,
+		`readers: {deployments: {prod: [{kind: Robot, name: r2}]}}`,
+		`readers: {deployments: {prod: [{kind: User, name: ""}]}}`,
+		`readers: {deployments: {prod: [{kind: User, name: a@example.com, namespace: tac-prod}]}}`,
+		`readers: {deployments: {prod: [{kind: Group, name: devs, apiGroup: example.com}]}}`,
+		`readers: {deployments: {prod: [{kind: User, name: a@example.com, unknown: 1}]}}`,
+		`readers: {unknown: 1}`,
 	} {
 		if _, err := Parse([]byte(bad)); err == nil {
 			t.Errorf("Parse(%q) succeeded, want an error", bad)
@@ -125,5 +136,28 @@ func TestChaos(t *testing.T) {
 	}
 	if _, err := Parse([]byte(`{chaos: {unknown: 1}}`)); err == nil {
 		t.Error("an unknown chaos key was accepted")
+	}
+}
+
+func TestReadersFor(t *testing.T) {
+	c, err := Parse([]byte(`
+readers:
+  deployments:
+    seatrials:
+      - {kind: User, name: seatrials-deploy@example.iam.gserviceaccount.com}
+      - {kind: Group, name: seatrials-oncall@example.com, apiGroup: rbac.authorization.k8s.io}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []rbacv1.Subject{
+		{Kind: rbacv1.UserKind, APIGroup: rbacv1.GroupName, Name: "seatrials-deploy@example.iam.gserviceaccount.com"},
+		{Kind: rbacv1.GroupKind, APIGroup: rbacv1.GroupName, Name: "seatrials-oncall@example.com"},
+	}
+	if got := c.ReadersFor("seatrials"); !reflect.DeepEqual(got, want) {
+		t.Errorf("ReadersFor(seatrials) = %+v, want %+v", got, want)
+	}
+	if got := c.ReadersFor("prod"); len(got) != 0 {
+		t.Errorf("ReadersFor(prod) = %+v, want none", got)
 	}
 }

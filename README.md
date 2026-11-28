@@ -41,7 +41,11 @@ refused, `Ready=False` and the reason says why (`NotDeploymentNamespace`, `InTen
 - **The tenant namespace** carries `deploymentproxy.tacplus.dev/deployment` and
   `deploymentproxy.tacplus.dev/tid` labels and holds: a RoleBinding making `operator` of the deployment
   namespace `admin` there, and a ResourceQuota from the ConfigMap, always with no load balancers and no node
-  ports. Anything changed or deleted by hand, the namespace included, is put back.
+  ports. For a deployment with readers in the ConfigMap (`readers.deployments.<deployment>`: Users or Groups,
+  its deploy account), also a RoleBinding `deploymentproxy-deploy-reader` giving them the ClusterRole
+  `deploymentproxy-tenant-reader`: read pods, their logs and events, nothing else, for the deployment's
+  post-deploy checks; without readers there is none, and dropping them removes it. Anything changed or deleted
+  by hand, the namespace included, is put back.
 - **No NetworkPolicies:** isolation is the bearer token checked at every door (tacplus's generated
   authorizers), not reachability: a cross-deployment or cross-tenant call is refused by the callee, whatever
   the network lets through
@@ -151,8 +155,8 @@ right on pods.
 | | |
 |---|---|
 | `config/crd` | the `TenantNamespace` CRD (schema, `tid` pattern, CEL immutability rule) and the `PodFault` CRD |
-| `config/rbac` | deploymentproxy's service account, ClusterRole and binding |
-| `config/manager` | its namespace, Deployment and ConfigMap (reserved tids, quota default and per-deployment overrides, chaos exclusions and failure image) |
+| `config/rbac` | deploymentproxy's service account, ClusterRole and binding, and `deploymentproxy-tenant-reader`, the read-only ClusterRole it binds to a deployment's readers |
+| `config/manager` | its namespace, Deployment and ConfigMap (reserved tids, quota default and per-deployment overrides, per-deployment readers, chaos exclusions and failure image) |
 | `config/deployment-namespace` | the Roles the pipeline applies in each deployment namespace: `operator.yaml` (`TenantNamespace`, for `operator`) and `chaos.yaml` (`PodFault`, for `chaos-controller`), each with `NAMESPACE=tac-<deployment> envsubst '$NAMESPACE' < config/deployment-namespace/<file> \| kubectl apply -f -` |
 
 Every pod template runs on arm64 nodes (the platform runs arm64 everywhere, GKE Axion): it selects

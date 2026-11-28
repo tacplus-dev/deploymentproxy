@@ -1,0 +1,15 @@
+# What a deployment's readers (the ConfigMap's readers.deployments: its deploy account) may do in each of its
+# tenant namespaces, where deploymentproxy binds it (RoleBinding deploymentproxy-deploy-reader): read its pods,
+# their logs and events, for its post-deploy checks. Nothing else: no secrets, no configmaps, no exec, no writes.
+# Not aggregated into admin, edit or view.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: deploymentproxy-tenant-reader
+rules:
+  - apiGroups: [""]
+    resources: [pods, pods/log, events]
+    verbs: [get, list, watch]
+  - apiGroups: [events.k8s.io]
+    resources: [events]
+    verbs: [get, list, watch]

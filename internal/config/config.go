@@ -1,5 +1,5 @@
 // Package config is deploymentproxy's configuration: the reserved tids it accepts, the quota it gives each
-// deployment's tenant namespaces, and what chaos faults may not target. It is read from the deploymentproxy
+// deployment's tenant namespaces, who may read them, and what chaos faults may not target. It is read from the deploymentproxy
 // ConfigMap, mounted as a file.
 package config
 
@@ -10,6 +10,7 @@ import (
 	"slices"
 
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/yaml"
 )
@@ -28,7 +29,15 @@ type Config struct {
 	// keeps (#14). It is still accepted, and checked to be reserved tids, so that existing ConfigMaps load.
 	SharedTids []string `json:"sharedTids,omitempty"`
 	Quota      Quota    `json:"quota,omitempty"`
+	Readers    Readers  `json:"readers,omitempty"`
 	Chaos      Chaos    `json:"chaos,omitempty"`
+}
+
+// Readers are, per deployment, the subjects bound read-only (the deploymentproxy-tenant-reader ClusterRole:
+// pods, their logs and events) in each of its tenant namespaces: its deploy account, for its post-deploy checks.
+// Each is a User or a Group; a deployment with none gets no binding.
+type Readers struct {
+	Deployments map[string][]rbacv1.Subject `json:"deployments,omitempty"`
 }
 
 // DefaultFailureImage is the image a PodFault of action Failure gives each container, unless configured.
@@ -76,6 +85,19 @@ func Parse(b []byte) (*Config, error) {
 			return nil, fmt.Errorf("config: shared tid %q is not a reserved tid", tid)
 		}
 	}
+	for deployment, subjects := range c.Readers.Deployments {
+		for i := range subjects {
+			s := &subjects[i]
+			if s.Kind != rbacv1.UserKind && s.Kind != rbacv1.GroupKind {
+				return nil, fmt.Errorf("config: reader %q of deployment %q: kind %q is not User or Group", s.Name, deployment, s.Kind)
+			}
+			if s.Name == "" || s.Namespace != "" || (s.APIGroup != "" && s.APIGroup != rbacv1.GroupName) {
+				return nil, fmt.Errorf("config: reader %+v of deployment %q: a reader has a name, no namespace, and no apiGroup but %s", *s, deployment, rbacv1.GroupName)
+			}
+			// As the API server defaults it, so that a binding read back equals the one wanted.
+			s.APIGroup = rbacv1.GroupName
+		}
+	}
 	if c.Chaos.FailureImage == "" {
 		c.Chaos.FailureImage = DefaultFailureImage
 	}
@@ -105,4 +127,9 @@ func (c *Config) QuotaFor(deployment string) corev1.ResourceList {
 	hard[corev1.ResourceServicesLoadBalancers] = resource.MustParse("0")
 	hard[corev1.ResourceServicesNodePorts] = resource.MustParse("0")
 	return hard
+}
+
+// ReadersFor returns the subjects bound read-only in each tenant namespace of deployment.
+func (c *Config) ReadersFor(deployment string) []rbacv1.Subject {
+	return c.Readers.Deployments[deployment]
 }

@@ -2,6 +2,9 @@
 # sharedTids: no effect since #14 (deploymentproxy keeps no NetworkPolicies); still accepted, so it may stay.
 # quota.default: every tenant namespace's ResourceQuota; quota.deployments.<name>: merged over it for that
 # deployment. services.loadbalancers and services.nodeports are always 0, whatever is set here.
+# readers.deployments.<name>: subjects (kind User or Group, and name: the deployment's deploy account) bound to
+# ClusterRole deploymentproxy-tenant-reader (read pods, pods/log and events) in each of that deployment's tenant
+# namespaces, by RoleBinding deploymentproxy-deploy-reader; a deployment with none gets no binding.
 # chaos.excludedNamespaces and chaos.excludedServices (app.kubernetes.io/name values): no fault targets them, on
 # top of the compiled-in exclusions (README); chaos.failureImage: what a PodFault Failure runs, default
 # registry.k8s.io/pause:3.10.
@@ -22,6 +25,8 @@ data:
         limits.memory: 32Gi
         persistentvolumeclaims: "20"
         requests.storage: 200Gi
+      deployments: {}
+    readers:
       deployments: {}
     chaos:
       excludedNamespaces: []

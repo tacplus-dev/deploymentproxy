@@ -22,7 +22,7 @@ func desiredObjects(owner types.NamespacedName, child, deployment, parent string
 			Annotations: map[string]string{OwnerAnnotation: owner.String()},
 		}
 	}
-	return []client.Object{
+	objs := []client.Object{
 		// The deployment's operator is admin of this namespace and nothing beyond it.
 		&rbacv1.RoleBinding{
 			ObjectMeta: om(RoleBindingName),
@@ -35,4 +35,22 @@ func desiredObjects(owner types.NamespacedName, child, deployment, parent string
 			Spec:       corev1.ResourceQuotaSpec{Hard: cfg.QuotaFor(deployment)},
 		},
 	}
+	if readers := cfg.ReadersFor(deployment); len(readers) > 0 {
+		// The deployment's deploy account reads its pods, their logs and events, for its post-deploy checks.
+		objs = append(objs, &rbacv1.RoleBinding{
+			ObjectMeta: om(ReaderRoleBindingName),
+			RoleRef:    rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "ClusterRole", Name: ReaderClusterRole},
+			Subjects:   readers,
+		})
+	}
+	return objs
+}
+
+// unwantedObjects are the objects deploymentproxy keeps in tenant namespace child of deployment only when
+// configured, and deletes when not: the reader binding, when the deployment has no readers.
+func unwantedObjects(child, deployment string, cfg *config.Config) []client.Object {
+	if len(cfg.ReadersFor(deployment)) > 0 {
+		return nil
+	}
+	return []client.Object{&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Namespace: child, Name: ReaderRoleBindingName}}}
 }

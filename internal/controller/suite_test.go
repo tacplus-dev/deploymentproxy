@@ -88,7 +88,7 @@ func run(m *testing.M) int {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	for _, f := range []string{"manager/namespace.yaml", "rbac/service_account.yaml", "rbac/cluster_role.yaml", "rbac/cluster_role_binding.yaml"} {
+	for _, f := range []string{"manager/namespace.yaml", "rbac/service_account.yaml", "rbac/cluster_role.yaml", "rbac/cluster_role_binding.yaml", "rbac/tenant_reader_cluster_role.yaml"} {
 		if err := applyFile(ctx, admin, filepath.Join("..", "..", "config", f), nil); err != nil {
 			panic(err)
 		}
@@ -155,6 +155,13 @@ func setConfig(t *testing.T, c string) {
 	}
 	old := currentConfig.Swap(cfg)
 	t.Cleanup(func() { currentConfig.Store(old) })
+}
+
+// impersonateUser returns cfg acting as the user name, as a person or a pipeline's cloud account is.
+func impersonateUser(cfg *rest.Config, name string) *rest.Config {
+	c := rest.CopyConfig(cfg)
+	c.Impersonate = rest.ImpersonationConfig{UserName: name, Groups: []string{"system:authenticated"}}
+	return c
 }
 
 // impersonate returns cfg acting as the service account namespace/name.
