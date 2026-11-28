@@ -3,4 +3,4 @@
 # that is `make check`) run without Docker. deploymentproxy is no tacplus project, so it has no tacplus.lock; the
 # build pipeline (looper-build plan) reads this pin the way it reads one. A new digest is a change like any other:
 # it lands on the full gates.
-build_image: ghcr.io/tacplus-dev/tacplus/build:20261126-57a6521@sha256:cd01058d9001c4257df43581fca0976fd939f1350b6a71da882d40319b21c5de
+build_image: ghcr.io/tacplus-dev/tacplus/build:20261128-7319ce5@sha256:a8343d291153d0faa20e83e22a765704dc7caa03d1569919e9d44a163ad88239
